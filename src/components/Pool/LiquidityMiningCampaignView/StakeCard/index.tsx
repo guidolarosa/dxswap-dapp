@@ -1,10 +1,11 @@
 import {
   JSBI,
+  LiquidityMiningCampaign,
   parseBigintIsh,
-  TokenAmount,
   SingleSidedLiquidityMiningCampaign,
-  LiquidityMiningCampaign
+  TokenAmount,
 } from '@swapr/sdk'
+
 import React, { useCallback, useEffect, useState } from 'react'
 import Skeleton from 'react-loading-skeleton'
 import { Box, Flex } from 'rebass'
@@ -18,10 +19,9 @@ import { useTransactionAdder } from '../../../../state/transactions/hooks'
 import { useTokenBalance } from '../../../../state/wallet/hooks'
 import { TYPE } from '../../../../theme'
 import { ButtonDark } from '../../../Button'
-
 import { GreyCard } from '../../../Card'
 import { AutoColumn } from '../../../Column'
-import CurrencyLogo from '../../../CurrencyLogo'
+import { CurrencyLogo } from '../../../CurrencyLogo'
 import Row, { RowBetween } from '../../../Row'
 import DataDisplayer from '../DataDisplayer'
 import TokenAmountDisplayer from '../TokenAmountDisplayer'
@@ -103,7 +103,7 @@ export const StyledButtonDark = styled(ButtonDark)`
   text-transform: uppercase;
   color: #c0baf7;
   border: 1px solid #2a2f42;
-  background: #191a24;
+  background: ${({ theme }) => theme.bg8};
 `
 
 interface FullPositionCardProps {
@@ -117,7 +117,7 @@ export default function StakeCard({
   campaign,
   showUSDValue,
   isSingleSided,
-  targetedPairOrToken: targetedPairOrSingleToken
+  targetedPairOrToken: targetedPairOrSingleToken,
 }: FullPositionCardProps) {
   const { account } = useActiveWeb3React()
   const stakableTokenBalance = useTokenBalance(
@@ -126,12 +126,8 @@ export default function StakeCard({
   )
 
   const callbacks = useLiquidityMiningActionCallbacks(campaign?.address)
-  const {
-    stakedTokenAmount,
-    claimableRewardAmounts,
-    claimedRewardAmounts,
-    totalRewardedAmounts
-  } = useLiquidityMiningCampaignPosition(campaign, account || undefined)
+  const { stakedTokenAmount, claimableRewardAmounts, claimedRewardAmounts, totalRewardedAmounts } =
+    useLiquidityMiningCampaignPosition(campaign, account || undefined)
   const addTransaction = useTransactionAdder()
   const { loading: loadingLpTokensUnderlyingAssets, underlyingAssets } = useLpTokensUnderlyingAssets(
     campaign instanceof LiquidityMiningCampaign ? campaign?.targetedPair : undefined,
@@ -257,7 +253,7 @@ export default function StakeCard({
           setErrorMessage('')
           setTransactionHash(transaction.hash || '')
           addTransaction(transaction, {
-            summary: `Stake ${amount.toSignificant(4)} ${campaign.staked.token.name}`
+            summary: `Stake ${amount.toSignificant(4)} ${campaign.staked.token.name}`,
           })
         })
         .catch(error => {
@@ -281,7 +277,7 @@ export default function StakeCard({
           setErrorMessage('')
           setTransactionHash(transaction.hash || '')
           addTransaction(transaction, {
-            summary: `Withdraw ${amount.toSignificant(4)} ${campaign.staked.token.name}`
+            summary: `Withdraw ${amount.toSignificant(4)} ${campaign.staked.token.name}`,
           })
         })
         .catch(error => {
@@ -304,7 +300,7 @@ export default function StakeCard({
           setErrorMessage('')
           setTransactionHash(transaction.hash || '')
           addTransaction(transaction, {
-            summary: `Claim ${amounts.map(amount => `${amount.toSignificant(4)} ${amount.token.symbol}`).join(', ')}`
+            summary: `Claim ${amounts.map(amount => `${amount.toSignificant(4)} ${amount.token.symbol}`).join(', ')}`,
           })
         })
         .catch(error => {
@@ -327,7 +323,7 @@ export default function StakeCard({
         setErrorMessage('')
         setTransactionHash(transaction.hash || '')
         addTransaction(transaction, {
-          summary: 'Claim rewards and withdraw stake'
+          summary: 'Claim rewards and withdraw stake',
         })
       })
       .catch(error => {

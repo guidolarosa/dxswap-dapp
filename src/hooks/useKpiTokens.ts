@@ -1,12 +1,15 @@
-import { gql, useQuery } from '@apollo/client'
-import { useMemo } from 'react'
-import { useActiveWeb3React } from '.'
-import { PricedTokenAmount, Price, Token, PricedToken, KpiToken } from '@swapr/sdk'
 import { getAddress } from '@ethersproject/address'
-import { useNativeCurrency } from '../hooks/useNativeCurrency'
 import { parseUnits } from '@ethersproject/units'
+import { KpiToken, Price, PricedToken, PricedTokenAmount, Token } from '@swapr/sdk'
+
+import { gql, useQuery } from '@apollo/client'
 import { Decimal } from 'decimal.js-light'
+import { useMemo } from 'react'
+
+import { useNativeCurrency } from '../hooks/useNativeCurrency'
 import { useCarrotSubgraphClient } from './useCarrotSubgraphClient'
+
+import { useActiveWeb3React } from './index'
 
 const KPI_TOKENS_QUERY = gql`
   query kpiTokens($ids: [ID!]!) {
@@ -69,18 +72,24 @@ export const useKpiTokens = (addresses: string[]): { loading: boolean; kpiTokens
   const carrotSubgraphClient = useCarrotSubgraphClient()
 
   const lowercaseAddresses = useMemo(() => addresses.map(address => address.toLowerCase()), [addresses])
-  const { loading: loadingRawKpiTokens, data: rawKpiTokens, error: rawKpiTokensError } = useQuery<KpiTokensQueryResult>(
-    KPI_TOKENS_QUERY,
-    { variables: { ids: lowercaseAddresses }, client: carrotSubgraphClient }
-  )
+  const {
+    loading: loadingRawKpiTokens,
+    data: rawKpiTokens,
+    error: rawKpiTokensError,
+  } = useQuery<KpiTokensQueryResult>(KPI_TOKENS_QUERY, {
+    variables: { ids: lowercaseAddresses },
+    client: carrotSubgraphClient,
+  })
   const collateralTokenAddresses = useMemo(() => {
     if (loadingRawKpiTokens || rawKpiTokensError || !rawKpiTokens) return []
     return rawKpiTokens.kpiTokens.map(rawKpiToken => rawKpiToken.collateral.token.address.toLowerCase())
   }, [loadingRawKpiTokens, rawKpiTokens, rawKpiTokensError])
-  const { loading: loadingCollateralPrices, data: collateralPrices, error: collateralError } = useQuery<
-    DerivedNativeCurrencyQueryResult
-  >(DERIVED_NATIVE_CURRENCY_QUERY, {
-    variables: { tokenIds: collateralTokenAddresses }
+  const {
+    loading: loadingCollateralPrices,
+    data: collateralPrices,
+    error: collateralError,
+  } = useQuery<DerivedNativeCurrencyQueryResult>(DERIVED_NATIVE_CURRENCY_QUERY, {
+    variables: { tokenIds: collateralTokenAddresses },
   })
 
   return useMemo(() => {
@@ -100,15 +109,15 @@ export const useKpiTokens = (addresses: string[]): { loading: boolean; kpiTokens
         const collateralPrice = collateralPrices.tokens.find(
           token => token.address.toLowerCase() === rawKpiToken.collateral.token.address.toLowerCase()
         )
-        const collateralTokenPrice = new Price(
-          collateralToken,
-          nativeCurrency,
-          parseUnits('1', nativeCurrency.decimals).toString(),
-          parseUnits(
+        const collateralTokenPrice = new Price({
+          baseCurrency: collateralToken,
+          quoteCurrency: nativeCurrency,
+          denominator: parseUnits('1', nativeCurrency.decimals).toString(),
+          numerator: parseUnits(
             collateralPrice ? new Decimal(collateralPrice.derivedNativeCurrency).toFixed(nativeCurrency.decimals) : '0',
             nativeCurrency.decimals
-          ).toString()
-        )
+          ).toString(),
+        })
         const pricedCollateral = new PricedToken(
           chainId,
           collateralToken.address,
@@ -128,7 +137,7 @@ export const useKpiTokens = (addresses: string[]): { loading: boolean; kpiTokens
           rawKpiToken.name
         )
         return kpiToken
-      })
+      }),
     }
   }, [
     chainId,
@@ -138,6 +147,6 @@ export const useKpiTokens = (addresses: string[]): { loading: boolean; kpiTokens
     loadingRawKpiTokens,
     nativeCurrency,
     rawKpiTokens,
-    rawKpiTokensError
+    rawKpiTokensError,
   ])
 }

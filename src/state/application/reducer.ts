@@ -1,13 +1,15 @@
-import { createReducer } from '@reduxjs/toolkit'
 import { ChainId } from '@swapr/sdk'
+
+import { createReducer } from '@reduxjs/toolkit'
+
 import {
-  PopupContent,
-  updateBlockNumber,
   ApplicationModal,
-  setOpenModal,
-  updateMainnetGasPrices,
   MainnetGasPrice,
-  setConnectorInfo
+  PopupContent,
+  setConnectorInfo,
+  setOpenModal,
+  updateBlockNumber,
+  updateMainnetGasPrices,
 } from './actions'
 
 type PopupList = Array<{ key: string; show: boolean; content: PopupContent; removeAfterMs: number | null }>
@@ -21,13 +23,13 @@ export interface ApplicationState {
   readonly account: string | null | undefined
 }
 
-const initialState: ApplicationState = {
+export const initialState: ApplicationState = {
   blockNumber: {},
   mainnetGasPrices: null,
   popupList: [],
   openModal: null,
   chainId: undefined,
-  account: null
+  account: null,
 }
 
 export default createReducer(initialState, builder =>

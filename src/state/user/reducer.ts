@@ -1,5 +1,7 @@
-import { INITIAL_ALLOWED_SLIPPAGE, DEFAULT_DEADLINE_FROM_NOW, DEFAULT_USER_MULTIHOP_ENABLED } from '../../constants'
 import { createReducer } from '@reduxjs/toolkit'
+
+import { DEFAULT_DEADLINE_FROM_NOW, DEFAULT_USER_MULTIHOP_ENABLED, INITIAL_ALLOWED_SLIPPAGE } from '../../constants'
+import { MainnetGasPrice } from '../application/actions'
 import { updateVersion } from '../global/actions'
 import {
   addSerializedPair,
@@ -8,16 +10,16 @@ import {
   removeSerializedToken,
   SerializedPair,
   SerializedToken,
-  updateMatchesDarkMode,
-  updateUserDarkMode,
-  updateUserMultihop,
-  updateUserExpertMode,
-  updateUserSlippageTolerance,
-  updateUserDeadline,
   toggleURLWarning,
-  updateUserPreferredGasPrice
+  updateMatchesDarkMode,
+  updateUserAdvancedSwapDetails,
+  updateUserDarkMode,
+  updateUserDeadline,
+  updateUserExpertMode,
+  updateUserMultihop,
+  updateUserPreferredGasPrice,
+  updateUserSlippageTolerance,
 } from './actions'
-import { MainnetGasPrice } from '../application/actions'
 
 const currentTimestamp = () => new Date().getTime()
 
@@ -57,6 +59,7 @@ export interface UserState {
 
   timestamp: number
   URLWarningVisible: boolean
+  userAdvancedSwapDetails: boolean
 }
 
 function pairKey(token0Address: string, token1Address: string) {
@@ -74,7 +77,8 @@ export const initialState: UserState = {
   tokens: {},
   pairs: {},
   timestamp: currentTimestamp(),
-  URLWarningVisible: true
+  URLWarningVisible: true,
+  userAdvancedSwapDetails: true,
 }
 
 export default createReducer(initialState, builder =>
@@ -163,5 +167,8 @@ export default createReducer(initialState, builder =>
     })
     .addCase(toggleURLWarning, state => {
       state.URLWarningVisible = !state.URLWarningVisible
+    })
+    .addCase(updateUserAdvancedSwapDetails, (state, action) => {
+      state.userAdvancedSwapDetails = action.payload.userAdvancedSwapDetails
     })
 )

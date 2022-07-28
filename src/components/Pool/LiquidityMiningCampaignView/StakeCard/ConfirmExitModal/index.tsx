@@ -1,10 +1,12 @@
 import { Pair, PricedTokenAmount, Token } from '@swapr/sdk'
+
 import React, { useCallback } from 'react'
 import { Box, Flex } from 'rebass'
+
 import { TYPE } from '../../../../../theme'
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
-  TransactionErrorContent
+  TransactionErrorContent,
 } from '../../../../TransactionConfirmationModal'
 import ConfirmStakingModalFooter from '../ModalBase/Footer'
 
@@ -29,7 +31,7 @@ export default function ConfirmExitModal({
   txHash,
   errorMessage,
   onDismiss,
-  onConfirm
+  onConfirm,
 }: ConfirmExitModalProps) {
   const topContent = useCallback(
     () => (

@@ -1,40 +1,71 @@
-import React, { useCallback } from 'react'
-import { CurrencyAmount, RoutablePlatform, Trade, TradeType } from '@swapr/sdk'
-import { AutoColumn } from '../Column'
-import { TYPE } from '../../theme'
-import CurrencyLogo from '../CurrencyLogo'
-import { Box, Flex } from 'rebass'
-import Radio from '../Radio'
-import QuestionHelper from '../QuestionHelper'
-import WarningHelper from '../WarningHelper'
-import SwapRoute from './SwapRoute'
-import { useSwapsGasEstimations } from '../../hooks/useSwapsGasEstimate'
-import { useUserSlippageTolerance } from '../../state/user/hooks'
-import { useSwapState } from '../../state/swap/hooks'
-import { useGasFeesUSD } from '../../hooks/useGasFeesUSD'
-import { RowFixed } from '../Row'
-import { ROUTABLE_PLATFORM_LOGO } from '../../constants'
-import styled from 'styled-components'
-import { computeSlippageAdjustedAmounts, computeTradePriceBreakdown } from '../../utils/prices'
-import { Field } from '../../state/swap/actions'
-import Skeleton from 'react-loading-skeleton'
-import useDebounce from '../../hooks/useDebounce'
-import { Table, Th } from '../Table'
+import { CurrencyAmount, Percent, RoutablePlatform, Trade, TradeType, UniswapV2Trade } from '@swapr/sdk'
 
-const Spacer = styled.tr`
-  height: 6px;
-`
+import React, { useCallback, useEffect, useState } from 'react'
+import { ChevronsDown } from 'react-feather'
+import { useTranslation } from 'react-i18next'
+import Skeleton from 'react-loading-skeleton'
+import { Box, Flex } from 'rebass'
+import styled, { useTheme } from 'styled-components'
+
+import { ONE_BIPS, PRICE_IMPACT_MEDIUM, ROUTABLE_PLATFORM_LOGO } from '../../constants'
+import useDebounce from '../../hooks/useDebounce'
+import { useGasFeesUSD } from '../../hooks/useGasFeesUSD'
+import { useIsMobileByMedia } from '../../hooks/useIsMobileByMedia'
+import { useSwapsGasEstimations } from '../../hooks/useSwapsGasEstimate'
+import { Field } from '../../state/swap/actions'
+import { useSwapState } from '../../state/swap/hooks'
+import { useUserSlippageTolerance } from '../../state/user/hooks'
+import { TYPE } from '../../theme'
+import {
+  computeSlippageAdjustedAmounts,
+  computeTradePriceBreakdown,
+  limitNumberOfDecimalPlaces,
+  simpleWarningSeverity,
+} from '../../utils/prices'
+import { AutoColumn } from '../Column'
+import { CurrencyLogo } from '../CurrencyLogo'
+import {
+  SelectionListDetails,
+  SelectionListLabel,
+  SelectionListLabelWrapper,
+  SelectionListName,
+  SelectionListOption,
+  SelectionListReceiveAmount,
+  SelectionListWindowWrapper,
+} from '../SelectionList'
+import WarningHelper from '../WarningHelper'
+import { PlatformSelectorLoader } from './SwapPlatformSelectorLoader'
+import SwapRoute from './SwapRoute'
 
 export interface SwapPlatformSelectorProps {
   allPlatformTrades: (Trade | undefined)[] | undefined
   selectedTrade?: Trade
   onSelectedPlatformChange: (newPlatform: RoutablePlatform) => void
+  isLoading: boolean
 }
 
 interface GasFeeProps {
   loading: boolean
   gasFeeUSD: CurrencyAmount | null
 }
+
+const StyledFlex = styled(Flex)`
+  gap: 4px;
+`
+
+const StyledRouteFlex = styled(Flex)`
+  align-items: center;
+  background-color: rgba(25, 26, 36, 0.55);
+  boarder: 1px solid ${({ theme }) => theme.purple6};
+  border-radius: 12px;
+  padding: 18px 16px;
+  margin-bottom: 16px !important;
+`
+
+const MoreMarketsButton = styled(Flex)`
+  cursor: pointer;
+  text-transform: uppercase;
+`
 
 function GasFee({ loading, gasFeeUSD }: GasFeeProps) {
   if (loading) {
@@ -50,12 +81,30 @@ function GasFee({ loading, gasFeeUSD }: GasFeeProps) {
   return <WarningHelper text="Could not estimate gas fee. Please make sure you've approved the traded token." />
 }
 
+const PriceImpact = ({ priceImpact }: { priceImpact?: Percent }) => {
+  return (
+    <TYPE.main
+      color={simpleWarningSeverity(priceImpact) >= PRICE_IMPACT_MEDIUM ? 'red1' : 'text4'}
+      fontSize="10px"
+      lineHeight="12px"
+    >
+      {priceImpact ? (priceImpact.lessThan(ONE_BIPS) ? '<0.01%' : `${priceImpact.toFixed(2)}%`) : '-'}
+    </TYPE.main>
+  )
+}
+
 export function SwapPlatformSelector({
+  isLoading,
   allPlatformTrades,
   selectedTrade,
-  onSelectedPlatformChange
+  onSelectedPlatformChange,
 }: SwapPlatformSelectorProps) {
-  const [allowedSlippage] = useUserSlippageTolerance()
+  const isMobileByMedia = useIsMobileByMedia()
+  const { t } = useTranslation()
+  const theme = useTheme()
+
+  const [showAllPlatformsTrades, setShowAllPlatformsTrades] = useState(false)
+  const allowedSlippage = useUserSlippageTolerance()
   const { recipient, independentField } = useSwapState()
   const { loading: loadingTradesGasEstimates, estimations } = useSwapsGasEstimations(
     allowedSlippage,
@@ -68,91 +117,113 @@ export function SwapPlatformSelector({
   const loadingGasFees = loadingGasFeesUSD || loadingTradesGasEstimates
   const debouncedLoadingGasFees = useDebounce(loadingGasFees, 2000)
 
+  useEffect(() => {
+    setShowAllPlatformsTrades(false)
+  }, [allPlatformTrades?.length])
+
   const showGasFees = estimations.length === allPlatformTrades?.length
 
   const handleSelectedTradeOverride = useCallback(
-    event => {
-      const newTrade = allPlatformTrades?.find(trade => trade?.platform.name.toLowerCase() === event.target.value)
+    platformName => {
+      const newTrade = allPlatformTrades?.find(trade => trade?.platform.name === platformName)
       if (!newTrade) return
       onSelectedPlatformChange(newTrade.platform)
     },
     [allPlatformTrades, onSelectedPlatformChange]
   )
 
+  const displayedPlatformTrade = showAllPlatformsTrades ? allPlatformTrades : allPlatformTrades?.slice(0, 3)
+
   return (
-    <AutoColumn gap="18px" style={{ borderBottom: '1px solid #292643', paddingBottom: '12px', marginBottom: '12px' }}>
-      <Table>
-        <thead>
-          <tr>
-            <Th colSpan={4}>EXCHANGE</Th>
-            <Th>FEE</Th>
-            {showGasFees && <Th align="right">GAS</Th>}
-            <Th align="right">{`${independentField === Field.OUTPUT ? 'MAX SENT' : 'MIN. RECEIVED'}`}</Th>
-          </tr>
-        </thead>
-        <tbody>
-          <Spacer />
-          {allPlatformTrades?.map((trade, i) => {
-            if (!trade) return null // some platforms might not be compatible with the currently selected network
-            const isExactIn = trade.tradeType === TradeType.EXACT_INPUT
-            const gasFeeUSD = gasFeesUSD[i]
-            const { realizedLPFee } = computeTradePriceBreakdown(trade)
-            const slippageAdjustedAmounts = computeSlippageAdjustedAmounts(trade, allowedSlippage)
-            return (
-              <tr key={i} style={{ lineHeight: '22px' }}>
-                <td colSpan={4}>
-                  <Radio
-                    checked={selectedTrade?.platform.name === trade.platform.name}
-                    label={trade.platform.name}
-                    icon={ROUTABLE_PLATFORM_LOGO[trade.platform.name]}
-                    value={trade.platform.name.toLowerCase()}
-                    onChange={handleSelectedTradeOverride}
-                  />
-                </td>
-                <td>
-                  <TYPE.main color="text4" fontSize="10px" lineHeight="12px">
-                    {realizedLPFee ? `${realizedLPFee.toFixed(2)}%` : '-'}
-                  </TYPE.main>
-                </td>
-                {showGasFees && (
-                  <td width="44px" align="right">
-                    <GasFee loading={debouncedLoadingGasFees} gasFeeUSD={gasFeeUSD} />
-                  </td>
-                )}
-                <td align="right">
-                  <RowFixed>
-                    <TYPE.subHeader color="white" fontSize="12px" fontWeight="600">
-                      {isExactIn
-                        ? `${slippageAdjustedAmounts[Field.OUTPUT]?.toSignificant(4)}` ?? '-'
-                        : `${slippageAdjustedAmounts[Field.INPUT]?.toSignificant(4)}` ?? '-'}
-                    </TYPE.subHeader>
-                    <CurrencyLogo
-                      currency={isExactIn ? trade.outputAmount.currency : trade.inputAmount.currency}
-                      size="14px"
-                      marginLeft={4}
-                    />
-                  </RowFixed>
-                </td>
-              </tr>
-            )
-          })}
-        </tbody>
-      </Table>
-      {selectedTrade && selectedTrade.route.path.length > 2 && (
-        <Flex mx="2px" width="100%">
-          <Flex>
-            <Box>
-              <TYPE.body fontSize="12px" lineHeight="15px" fontWeight="500" minWidth="auto">
-                Route
-              </TYPE.body>
-            </Box>
-            <Box>
-              <QuestionHelper text="Routing through these tokens resulted in the best price for your trade." />
-            </Box>
-          </Flex>
+    <AutoColumn>
+      {selectedTrade instanceof UniswapV2Trade && selectedTrade.route.path.length > 2 && (
+        <StyledRouteFlex>
+          {!isMobileByMedia && (
+            <TYPE.body fontSize="14px" lineHeight="15px" fontWeight="400" minWidth="auto" color={theme.purple2}>
+              Route
+            </TYPE.body>
+          )}
           <Box flex="1">
             <SwapRoute trade={selectedTrade} />
           </Box>
+        </StyledRouteFlex>
+      )}
+      <SelectionListWindowWrapper>
+        <SelectionListLabelWrapper>
+          <SelectionListLabel justify={true} flex={showGasFees ? '30%' : '45%'}>
+            {t('exchange')}
+          </SelectionListLabel>
+          <SelectionListLabel>{isMobileByMedia ? t('pImp') : t('pImpact')}</SelectionListLabel>
+          <SelectionListLabel>{t('fee')}</SelectionListLabel>
+          {showGasFees && <SelectionListLabel>{t('gas')}</SelectionListLabel>}
+          <SelectionListLabel flex="25%">
+            {independentField === Field.OUTPUT ? t('maxSent') : t('minReceived')}
+          </SelectionListLabel>
+        </SelectionListLabelWrapper>
+        {isLoading && allPlatformTrades?.length === 0 ? (
+          <PlatformSelectorLoader showGasFeeColumn={showGasFees} />
+        ) : (
+          displayedPlatformTrade?.map((trade, i) => {
+            if (!trade) return null // some platforms might not be compatible with the currently selected network
+            const isExactIn = trade.tradeType === TradeType.EXACT_INPUT
+            const gasFeeUSD = gasFeesUSD[i]
+            const { realizedLPFee, priceImpactWithoutFee } = computeTradePriceBreakdown(trade)
+            const slippageAdjustedAmounts = computeSlippageAdjustedAmounts(trade)
+            const tokenAmount = limitNumberOfDecimalPlaces(
+              isExactIn ? slippageAdjustedAmounts[Field.OUTPUT] : slippageAdjustedAmounts[Field.INPUT]
+            )
+
+            return (
+              <SelectionListOption
+                role="button"
+                key={trade.platform.name}
+                isSelected={selectedTrade?.platform.name === trade.platform.name}
+                onClick={() => handleSelectedTradeOverride(trade.platform.name)}
+                data-testid={`${trade.platform.name.replace(/\s+/g, '-').toLowerCase()}-platform-selector`}
+              >
+                <SelectionListName
+                  flex={showGasFees ? '30%' : '45%'}
+                  isSelected={selectedTrade?.platform.name === trade.platform.name}
+                >
+                  <StyledFlex alignItems="center">
+                    {ROUTABLE_PLATFORM_LOGO[trade.platform.name]}
+                    {trade.platform.name}
+                  </StyledFlex>
+                </SelectionListName>
+                <SelectionListDetails>
+                  <PriceImpact priceImpact={priceImpactWithoutFee} />
+                </SelectionListDetails>
+                <SelectionListDetails>{realizedLPFee ? `${realizedLPFee.toFixed(2)}%` : '-'}</SelectionListDetails>
+                {showGasFees && (
+                  <SelectionListDetails>
+                    <GasFee loading={debouncedLoadingGasFees} gasFeeUSD={gasFeeUSD} />
+                  </SelectionListDetails>
+                )}
+                <SelectionListReceiveAmount flex="25%">
+                  <TYPE.subHeader color="white" fontSize="12px" fontWeight="600">
+                    {tokenAmount === '0' ? '<0.0000001' : tokenAmount || '-'}
+                  </TYPE.subHeader>
+                  <CurrencyLogo
+                    currency={isExactIn ? trade.outputAmount.currency : trade.inputAmount.currency}
+                    size="14px"
+                    marginLeft={4}
+                  />
+                </SelectionListReceiveAmount>
+              </SelectionListOption>
+            )
+          })
+        )}
+      </SelectionListWindowWrapper>
+      {allPlatformTrades && allPlatformTrades.length > 3 && (
+        <Flex justifyContent="center">
+          {!showAllPlatformsTrades && (
+            <MoreMarketsButton alignItems="center" onClick={() => setShowAllPlatformsTrades(true)}>
+              <TYPE.main fontWeight={600} color={'purple3'} fontSize="10px" mr="8px">
+                {t('showMore')}
+              </TYPE.main>
+              <ChevronsDown size={15} color={theme.purple3} />
+            </MoreMarketsButton>
+          )}
         </Flex>
       )}
     </AutoColumn>

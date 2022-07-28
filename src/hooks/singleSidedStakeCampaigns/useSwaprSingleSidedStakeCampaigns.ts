@@ -1,19 +1,17 @@
+import { SingleSidedLiquidityMiningCampaign, Token } from '@swapr/sdk'
+
 import { gql, useQuery } from '@apollo/client'
-
-import { Token, SingleSidedLiquidityMiningCampaign } from '@swapr/sdk'
-
 import { useMemo } from 'react'
 
 import { useActiveWeb3React } from '..'
 import { SubgraphSingleSidedStakingCampaign } from '../../apollo'
 import { PairsFilterType } from '../../components/Pool/ListFilter'
-
 import { toSingleSidedStakeCampaign } from '../../utils/liquidityMining'
 import { useSWPRToken } from '../swpr/useSWPRToken'
 import { useNativeCurrency } from '../useNativeCurrency'
 
 const QUERY = gql`
-  query($address: ID, $userId: ID) {
+  query ($address: ID, $userId: ID) {
     singleSidedStakingCampaigns(first: 100, orderBy: endsAt, where: { stakeToken: $address }) {
       id
       owner
@@ -59,17 +57,18 @@ export function useSwaprSinglelSidedStakeCampaigns(
 } {
   const { chainId, account } = useActiveWeb3React()
   const nativeCurrency = useNativeCurrency()
-  const subgraphAccountId = useMemo(() => account?.toLowerCase() || '', [account])
-  const filterTokenAddress = useMemo(() => filterToken?.address.toLowerCase(), [filterToken])
+  const subgraphAccountId = account?.toLowerCase() || ''
+  const filterTokenAddress = filterToken?.address.toLowerCase()
 
-  const { address: swaprAddress } = useSWPRToken()
+  const SWPRToken = useSWPRToken()
+  const swaprAddress = SWPRToken?.address ?? undefined
   const { data, loading, error } = useQuery<{
     singleSidedStakingCampaigns: SubgraphSingleSidedStakingCampaign[]
   }>(QUERY, {
     variables: {
-      address: swaprAddress.toLowerCase(),
-      userId: subgraphAccountId
-    }
+      address: swaprAddress?.toLowerCase(),
+      userId: subgraphAccountId,
+    },
   })
   return useMemo(() => {
     if (loading || chainId === undefined) {
@@ -108,7 +107,7 @@ export function useSwaprSinglelSidedStakeCampaigns(
       loading: false,
       data: singleSidedStakeCampaign,
       stakedAmount:
-        wrapped.singleSidedStakingPositions.length > 0 ? wrapped.singleSidedStakingPositions[0].stakedAmount : '0'
+        wrapped.singleSidedStakingPositions.length > 0 ? wrapped.singleSidedStakingPositions[0].stakedAmount : '0',
     }
   }, [filter, data, loading, error, filterToken, swaprAddress, chainId, nativeCurrency, filterTokenAddress])
 }

@@ -1,6 +1,9 @@
-import { ChainId } from '@swapr/sdk'
-import { OutgoingMessageState } from 'arb-ts'
 import { TransactionReceipt } from '@ethersproject/abstract-provider'
+import { ChainId } from '@swapr/sdk'
+
+import { OutgoingMessageState } from 'arb-ts'
+
+import { BridgeList } from '../../services/EcoBridge/EcoBridge.types'
 
 export type BridgeTxnType =
   | 'deposit'
@@ -15,17 +18,17 @@ export type BridgeTxnType =
 
 export enum BridgeAssetType {
   ETH = 'ETH',
-  ERC20 = 'ERC20'
+  ERC20 = 'ERC20',
   //ERC721
 }
 
-export type BridgeTxnsState = {
+export type ArbitrumBridgeTxnsState = {
   [chainId: number]: {
-    [txHash: string]: BridgeTxn
+    [txHash: string]: ArbitrumBridgeTxn
   }
 }
 
-export type BridgeTxn = {
+export type ArbitrumBridgeTxn = {
   type: BridgeTxnType
   chainId: ChainId
   sender: string
@@ -37,7 +40,7 @@ export type BridgeTxn = {
   txHash: string
   blockNumber?: number
   timestampResolved?: number
-  timestampCreated: number
+  timestampCreated?: number
   receipt?: TransactionReceipt
   seqNum?: number
   partnerTxHash?: string
@@ -46,10 +49,18 @@ export type BridgeTxn = {
   outgoingMessageState?: OutgoingMessageState
 }
 
-export type BridgeTransactionStatus = 'failed' | 'confirmed' | 'pending' | 'redeem' | 'claimed' | 'loading'
+export enum BridgeTransactionStatus {
+  FAILED = 'failed',
+  CONFIRMED = 'confirmed',
+  PENDING = 'pending',
+  REDEEM = 'redeem',
+  CLAIMED = 'claimed',
+  LOADING = 'loading',
+  CANCELLED = 'cancelled',
+}
 
 export type BridgeTransactionSummary = Pick<
-  BridgeTxn,
+  ArbitrumBridgeTxn,
   | 'txHash'
   | 'assetName'
   | 'value'
@@ -63,10 +74,8 @@ export type BridgeTransactionSummary = Pick<
   toChainId: ChainId
   log: BridgeTransactionLog[]
   status: BridgeTransactionStatus
+  bridgeId: BridgeList
   pendingReason?: string
 }
 
-export type BridgeTransactionLog = Pick<BridgeTxn, 'txHash' | 'type' | 'chainId'> &
-  Pick<BridgeTransactionSummary, 'fromChainId' | 'toChainId'> & {
-    status: BridgeTransactionStatus
-  }
+export type BridgeTransactionLog = Pick<ArbitrumBridgeTxn, 'txHash' | 'chainId'>

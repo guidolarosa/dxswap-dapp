@@ -1,20 +1,20 @@
 import React, { useCallback } from 'react'
+import { ExternalLink as LinkIcon } from 'react-feather'
+import { useTranslation } from 'react-i18next'
 import { useDispatch } from 'react-redux'
+import { ButtonProps } from 'rebass'
 import styled from 'styled-components'
+
+import { ReactComponent as Close } from '../../assets/images/x.svg'
 import { useActiveWeb3React } from '../../hooks'
 import { AppDispatch } from '../../state'
 import { clearAllTransactions } from '../../state/transactions/actions'
-import { shortenAddress } from '../../utils'
+import { ExternalLink, LinkStyledButton, TYPE } from '../../theme'
+import { getExplorerLink, shortenAddress } from '../../utils'
+import { ButtonInvisbile } from '../Button'
 import { AutoRow } from '../Row'
 import Copy from './Copy'
 import Transaction from './Transaction'
-
-import { ReactComponent as Close } from '../../assets/images/x.svg'
-import { getExplorerLink } from '../../utils'
-import { ExternalLink as LinkIcon } from 'react-feather'
-import { ExternalLink, LinkStyledButton, TYPE } from '../../theme'
-import { ButtonProps } from 'rebass'
-import { ButtonInvisbile } from '../Button'
 
 const HeaderRow = styled.div`
   ${({ theme }) => theme.flexRowNoWrap};
@@ -211,14 +211,17 @@ export default function AccountDetails({
   pendingTransactions,
   confirmedTransactions,
   ENSName,
-  openOptions
+  openOptions,
 }: AccountDetailsProps) {
   const { chainId, account } = useActiveWeb3React()
   const dispatch = useDispatch<AppDispatch>()
+  const { t } = useTranslation()
 
   const clearAllTransactionsCallback = useCallback(() => {
     if (chainId) dispatch(clearAllTransactions({ chainId }))
   }, [dispatch, chainId])
+
+  const addressLinkText = t('viewOnBlockExplorer')
 
   return (
     <>
@@ -273,10 +276,10 @@ export default function AccountDetails({
                           <AddressLink
                             hasENS={!!ENSName}
                             isENS={true}
-                            href={chainId && getExplorerLink(chainId, ENSName, 'address')}
+                            href={getExplorerLink(chainId, ENSName, 'address')}
                           >
                             <CustomLinkIcon size={16} />
-                            <span style={{ marginLeft: '4px' }}>View on block explorer</span>
+                            <span style={{ marginLeft: '4px' }}>{addressLinkText}</span>
                           </AddressLink>
                         )}
                       </div>
@@ -298,7 +301,7 @@ export default function AccountDetails({
                             href={getExplorerLink(chainId, account, 'address')}
                           >
                             <CustomLinkIcon size={16} />
-                            <span style={{ marginLeft: '4px' }}>View on block explorer</span>
+                            <span style={{ marginLeft: '4px' }}>{addressLinkText}</span>
                           </AddressLink>
                         )}
                       </div>

@@ -1,6 +1,9 @@
-import { ConnectorUpdate } from '@web3-react/types'
 import { AbstractConnector } from '@web3-react/abstract-connector'
+// eslint-disable-next-line import/named
+import { ConnectorUpdate } from '@web3-react/types'
 import invariant from 'tiny-invariant'
+
+import { NetworkDetails } from '../constants'
 
 // taken from ethers.js, compatible interface with web3 provider
 type AsyncSendable = {
@@ -35,7 +38,7 @@ class CustomMiniRpcProvider implements AsyncSendable {
   }
 
   public readonly sendAsync = (
-    request: { jsonrpc: '2.0'; id: number | string | null; method: string; params?: unknown[] | object },
+    request: { jsonrpc: '2.0'; id: number | string | null; method: string; params?: unknown[] },
     callback: (error: any, response: any) => void
   ): void => {
     this.request(request.method, request.params)
@@ -44,8 +47,8 @@ class CustomMiniRpcProvider implements AsyncSendable {
   }
 
   public readonly request = async (
-    method: string | { method: string; params?: unknown[] | object },
-    params?: unknown[] | object
+    method: string | { method: string; params?: unknown[] },
+    params?: unknown[]
   ): Promise<unknown> => {
     if (typeof method !== 'string') {
       params = (method as any).params
@@ -55,14 +58,14 @@ class CustomMiniRpcProvider implements AsyncSendable {
     const response = await fetch(this.url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
         id: 1,
         method,
-        params
-      })
+        params,
+      }),
     })
     if (!response.ok) throw new RequestError(`${response.status}: ${response.statusText}`, -32000)
     const body = await response.json()
@@ -124,5 +127,19 @@ export class CustomNetworkConnector extends AbstractConnector {
     invariant(Object.keys(this.providers).includes(chainId.toString()), `No url found for chainId ${chainId}`)
     this.currentChainId = chainId
     this.emitUpdate({ provider: this.providers[this.currentChainId], chainId })
+  }
+
+  public switchUnsupportedNetwork(networkDetails?: NetworkDetails) {
+    if (!window.ethereum || !window.ethereum.request || !window.ethereum.isMetaMask || !networkDetails) return
+    window.ethereum
+      .request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: networkDetails.chainId }],
+      })
+      .catch(error => {
+        if (error.code !== 4902) {
+          console.error('error switching to chain id', networkDetails.chainId, error)
+        }
+      })
   }
 }

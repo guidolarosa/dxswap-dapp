@@ -1,21 +1,24 @@
+import { parseUnits } from '@ethersproject/units'
+import { CurrencyAmount, KpiToken, Pair, Percent, Token, TokenAmount, USD } from '@swapr/sdk'
+
 import { gql, useQuery } from '@apollo/client'
 import Decimal from 'decimal.js-light'
-import { CurrencyAmount, KpiToken, Pair, Percent, Token, TokenAmount, USD } from '@swapr/sdk'
 import { ethers } from 'ethers'
-import { parseUnits } from 'ethers/lib/utils'
 import { DateTime, Duration } from 'luxon'
 import { useMemo } from 'react'
-import { useActiveWeb3React } from '.'
+
 import { SubgraphLiquidityMiningCampaign } from '../apollo'
 import { getBestApyPairCampaign, toLiquidityMiningCampaign } from '../utils/liquidityMining'
-import { useNativeCurrency } from './useNativeCurrency'
 import { useKpiTokens } from './useKpiTokens'
+import { useNativeCurrency } from './useNativeCurrency'
+
+import { useActiveWeb3React } from './index'
 
 // when a user stakes their full lp share on a certain campaign, their liquidity position
 // goes to 0, and their liquidity mining position increases. In order to avoid hiding pairs where
 // the user is providing liquidity when they fully commit to a campaign, we need to take this into account
 const QUERY = gql`
-  query($account: ID!, $lowerTimeLimit: BigInt!) {
+  query ($account: ID!, $lowerTimeLimit: BigInt!) {
     liquidityPositions(where: { user: $account, liquidityTokenBalance_gt: 0 }) {
       pair {
         address: id
@@ -131,15 +134,14 @@ interface QueryResult {
   liquidityMiningPositions: { pair: SubgraphPair }[]
 }
 
-export function useLPPairs(
-  account?: string
-): {
+export function useLPPairs(account?: string): {
   loading: boolean
   data: {
     pair: Pair
     liquidityUSD: CurrencyAmount
     maximumApy: Percent
     staked: boolean
+    hasFarming: boolean
     containsKpiToken: boolean
   }[]
 } {
@@ -154,11 +156,15 @@ export function useLPPairs(
       ),
     []
   )
-  const { loading: loadingMyPairs, data, error } = useQuery<QueryResult>(QUERY, {
+  const {
+    loading: loadingMyPairs,
+    data,
+    error,
+  } = useQuery<QueryResult>(QUERY, {
     variables: {
       account: account?.toLowerCase() || '',
-      lowerTimeLimit: memoizedLowerTimeLimit
-    }
+      lowerTimeLimit: memoizedLowerTimeLimit,
+    },
   })
   const rewardTokenAddresses = useMemo(() => {
     if (loadingMyPairs || !data) return []
@@ -183,16 +189,20 @@ export function useLPPairs(
     )
       return { loading: false, data: [] }
     // normalize double pairs (case in which a user has staked only part of their lp tokens)
-    const allPairsWithoutDuplicates = data.liquidityMiningPositions
-      .concat(data.liquidityPositions)
-      .reduce((accumulator: { pair: SubgraphPair }[], rawWrappedPair: { pair: SubgraphPair }): {
+    const allPairsWithoutDuplicates = data.liquidityMiningPositions.concat(data.liquidityPositions).reduce(
+      (
+        accumulator: { pair: SubgraphPair }[],
+        rawWrappedPair: { pair: SubgraphPair }
+      ): {
         pair: SubgraphPair
       }[] => {
-        if (!!!accumulator.find(p => p.pair.address === rawWrappedPair.pair.address)) {
+        if (!accumulator.find(p => p.pair.address === rawWrappedPair.pair.address)) {
           accumulator.push(rawWrappedPair)
         }
         return accumulator
-      }, [])
+      },
+      []
+    )
     return {
       loading: false,
       data: allPairsWithoutDuplicates.map(position => {
@@ -204,7 +214,7 @@ export function useLPPairs(
           totalSupply,
           reserveNativeCurrency,
           reserveUSD,
-          liquidityMiningCampaigns
+          liquidityMiningCampaigns,
         } = position.pair
         const tokenAmountA = new TokenAmount(
           new Token(
@@ -244,11 +254,12 @@ export function useLPPairs(
           liquidityUSD: CurrencyAmount.usd(
             parseUnits(new Decimal(reserveUSD).toFixed(USD.decimals), USD.decimals).toString()
           ),
+          hasFarming: pair.liquidityMiningCampaigns.some(campaign => campaign.currentlyActive),
           staked: position.pair.liquidityMiningCampaigns.some(campaign => campaign.liquidityMiningPositions.length > 0),
           maximumApy: bestCampaign ? bestCampaign.apy : new Percent('0', '100'),
-          containsKpiToken: !!bestCampaign?.rewards.some(reward => reward.token instanceof KpiToken)
+          containsKpiToken: !!bestCampaign?.rewards.some(reward => reward.token instanceof KpiToken),
         }
-      })
+      }),
     }
   }, [chainId, data, error, kpiTokens, loadingKpiTokens, loadingMyPairs, nativeCurrency])
 }

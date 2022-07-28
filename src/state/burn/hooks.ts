@@ -1,9 +1,10 @@
 import { Currency, CurrencyAmount, JSBI, Pair, Percent, TokenAmount } from '@swapr/sdk'
+
 import { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
 import { usePair } from '../../data/Reserves'
 import { useTotalSupply } from '../../data/TotalSupply'
-
 import { useActiveWeb3React } from '../../hooks'
 import { wrappedCurrency } from '../../utils/wrappedCurrency'
 import { AppDispatch, AppState } from '../index'
@@ -43,7 +44,7 @@ export function useDerivedBurnInfo(
   const tokens = {
     [Field.CURRENCY_A]: tokenA,
     [Field.CURRENCY_B]: tokenB,
-    [Field.LIQUIDITY]: pair?.liquidityToken
+    [Field.LIQUIDITY]: pair?.liquidityToken,
   }
 
   // liquidity values
@@ -68,7 +69,7 @@ export function useDerivedBurnInfo(
       : undefined
   const liquidityValues: { [Field.CURRENCY_A]?: TokenAmount; [Field.CURRENCY_B]?: TokenAmount } = {
     [Field.CURRENCY_A]: liquidityValueA,
-    [Field.CURRENCY_B]: liquidityValueB
+    [Field.CURRENCY_B]: liquidityValueB,
   }
 
   let percentToRemove: Percent = new Percent('0', '100')
@@ -114,7 +115,7 @@ export function useDerivedBurnInfo(
     [Field.CURRENCY_B]:
       tokenB && percentToRemove && percentToRemove.greaterThan('0') && liquidityValueB
         ? new TokenAmount(tokenB, percentToRemove.multiply(liquidityValueB.raw).quotient)
-        : undefined
+        : undefined,
   }
 
   let error: string | undefined
@@ -142,6 +143,6 @@ export function useBurnActionHandlers(): {
   )
 
   return {
-    onUserInput
+    onUserInput,
   }
 }

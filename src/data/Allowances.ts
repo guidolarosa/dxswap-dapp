@@ -1,15 +1,16 @@
 import { CurrencyAmount, Token, TokenAmount } from '@swapr/sdk'
+
 import { BigNumber, constants } from 'ethers'
 import { useMemo } from 'react'
-import ERC20_INTERFACE from '../constants/abis/erc20'
-import { useActiveWeb3React } from '../hooks'
 
+import { ERC20_INTERFACE } from '../constants/abis/erc20'
+import { useActiveWeb3React } from '../hooks'
 import { useMulticallContract, useTokenContract } from '../hooks/useContract'
 import { useNativeCurrency } from '../hooks/useNativeCurrency'
 import {
   useMultipleContractSingleData,
   useSingleCallResult,
-  useSingleContractMultipleData
+  useSingleContractMultipleData,
 } from '../state/multicall/hooks'
 
 export function useTokenAllowance(token?: Token, owner?: string, spender?: string): TokenAmount | undefined {
@@ -18,10 +19,10 @@ export function useTokenAllowance(token?: Token, owner?: string, spender?: strin
   const inputs = useMemo(() => [owner, spender], [owner, spender])
   const allowance = useSingleCallResult(contract, 'allowance', inputs).result
 
-  return useMemo(() => (token && allowance ? new TokenAmount(token, allowance.toString()) : undefined), [
-    token,
-    allowance
-  ])
+  return useMemo(
+    () => (token && allowance ? new TokenAmount(token, allowance.toString()) : undefined),
+    [token, allowance]
+  )
 }
 
 export function useTokenAllowances(

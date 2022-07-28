@@ -1,4 +1,5 @@
 import { Currency, Token } from '@swapr/sdk'
+
 import { Tags, TokenInfo, TokenList } from '@uniswap/token-lists'
 import { getAddress } from 'ethers/lib/utils'
 
@@ -35,7 +36,7 @@ export class WrappedTokenInfo extends Token {
     return (this._tags = this.tokenInfo.tags.map(tagId => {
       return {
         ...listTags[tagId],
-        id: tagId
+        id: tagId,
       }
     }))
   }

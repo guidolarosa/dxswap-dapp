@@ -1,9 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react'
 import { CurrencyAmount } from '@swapr/sdk'
+
+import { InjectedConnector } from '@web3-react/injected-connector'
+import React, { useCallback, useEffect, useState } from 'react'
 import styled from 'styled-components'
+
 import { useActiveWeb3React } from '../../../hooks'
 import { ButtonPrimary } from '../../Button'
-import { InjectedConnector } from '@web3-react/injected-connector'
 import { AutoColumn } from '../../Column'
 
 const StyledClaimButton = styled(ButtonPrimary)`
@@ -31,7 +33,7 @@ export function ActionButton({
   isOldSwaprLp,
   onConnectWallet,
   onSwitchToArbitrum,
-  onClaim
+  onClaim,
 }: ActionButtonProps) {
   const { account, chainId, connector } = useActiveWeb3React()
 
@@ -40,7 +42,7 @@ export function ActionButton({
 
   useEffect(() => {
     let localDisabled = true
-    if (!!!account) localDisabled = false
+    if (!account) localDisabled = false
     // this else if handles cases where no airdrop nor conversion is available,
     // or when the user is in the correct network but no native currency
     // balance is there
@@ -52,7 +54,7 @@ export function ActionButton({
 
   useEffect(() => {
     let buttonText = 'Claim SWPR (old)'
-    if (!!!account) buttonText = 'Connect wallet'
+    if (!account) buttonText = 'Connect wallet'
     else if (!correctNetwork) buttonText = 'Switch to Arbitrum'
     else if (isOldSwaprLp) buttonText = 'Pull liquidity'
     else if (availableClaim) buttonText = 'Claim SWPR (old)'
@@ -66,8 +68,8 @@ export function ActionButton({
       const anchor = document.createElement('a')
       Object.assign(anchor, {
         target: '_blank',
-        href: 'https://oldbuild.eth.link/#/pools?chainId=42161',
-        rel: 'noopener noreferrer'
+        href: 'https://oldbuild.eth.limo/#/pools?chainId=42161',
+        rel: 'noopener noreferrer',
       }).click()
       anchor.remove()
     } else if (availableClaim) onClaim()

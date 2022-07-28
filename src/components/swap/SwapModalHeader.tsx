@@ -1,24 +1,26 @@
-import { Trade, TradeType } from '@swapr/sdk'
-import React, { useContext, useMemo } from 'react'
-import { ArrowDown, AlertTriangle } from 'react-feather'
+import { Trade, TradeType, UniswapV2Trade } from '@swapr/sdk'
+
+import React, { useMemo } from 'react'
+import { AlertTriangle, ArrowDown } from 'react-feather'
 import { Text } from 'rebass'
-import { ThemeContext } from 'styled-components'
+import { useTheme } from 'styled-components'
+
 import { Field } from '../../state/swap/actions'
 import { TYPE } from '../../theme'
-import { ButtonPrimary } from '../Button'
 import { isAddress, shortenAddress } from '../../utils'
 import { computeSlippageAdjustedAmounts, computeTradePriceBreakdown, warningSeverity } from '../../utils/prices'
+import { ButtonPrimary } from '../Button'
 import { AutoColumn } from '../Column'
-import CurrencyLogo from '../CurrencyLogo'
+import { CurrencyLogo } from '../CurrencyLogo'
 import { RowBetween, RowFixed } from '../Row'
-import { TruncatedText, SwapShowAcceptChanges } from './styleds'
+import { SwapShowAcceptChanges, TruncatedText } from './styleds'
 
 export default function SwapModalHeader({
   trade,
-  allowedSlippage,
+  // allowedSlippage,
   recipient,
   showAcceptChanges,
-  onAcceptChanges
+  onAcceptChanges,
 }: {
   trade: Trade
   allowedSlippage: number
@@ -26,14 +28,11 @@ export default function SwapModalHeader({
   showAcceptChanges: boolean
   onAcceptChanges: () => void
 }) {
-  const slippageAdjustedAmounts = useMemo(() => computeSlippageAdjustedAmounts(trade, allowedSlippage), [
-    trade,
-    allowedSlippage
-  ])
-  const { priceImpactWithoutFee } = useMemo(() => computeTradePriceBreakdown(trade), [trade])
+  const slippageAdjustedAmounts = useMemo(() => computeSlippageAdjustedAmounts(trade), [trade])
+  const { priceImpactWithoutFee } = useMemo(() => computeTradePriceBreakdown(trade as UniswapV2Trade), [trade])
   const priceImpactSeverity = warningSeverity(priceImpactWithoutFee)
 
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
 
   return (
     <AutoColumn gap={'md'} style={{ marginTop: '20px' }}>
@@ -88,7 +87,12 @@ export default function SwapModalHeader({
               <TYPE.main color={theme.primary1}> Price Updated</TYPE.main>
             </RowFixed>
             <ButtonPrimary
-              style={{ padding: '.5rem', width: 'fit-content', fontSize: '0.825rem', borderRadius: '12px' }}
+              style={{
+                padding: '.5rem',
+                width: 'fit-content',
+                fontSize: '0.825rem',
+                borderRadius: '12px',
+              }}
               onClick={onAcceptChanges}
             >
               Accept
@@ -100,7 +104,7 @@ export default function SwapModalHeader({
         {trade.tradeType === TradeType.EXACT_INPUT ? (
           <TYPE.body fontSize="13px" color="text4" textAlign="left" style={{ width: '100%' }}>
             {`Output is estimated. You will receive at least `}
-            <b>
+            <b data-testid="estimated-transaction-output">
               {slippageAdjustedAmounts[Field.OUTPUT]?.toSignificant(6)} {trade.outputAmount.currency.symbol}
             </b>
             {' or the transaction will revert.'}
@@ -108,7 +112,7 @@ export default function SwapModalHeader({
         ) : (
           <TYPE.body fontSize="13px" color="text4" textAlign="left" style={{ width: '100%' }}>
             {`Input is estimated. You will sell at most `}
-            <b>
+            <b data-testid="estimated-transaction-output">
               {slippageAdjustedAmounts[Field.INPUT]?.toSignificant(6)} {trade.inputAmount.currency.symbol}
             </b>
             {' or the transaction will revert.'}

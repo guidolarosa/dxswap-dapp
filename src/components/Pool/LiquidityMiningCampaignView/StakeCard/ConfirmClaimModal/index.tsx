@@ -1,8 +1,10 @@
 import { PricedTokenAmount, TokenAmount } from '@swapr/sdk'
+
 import React, { useCallback, useEffect, useState } from 'react'
+
 import TransactionConfirmationModal, {
   ConfirmationModalContent,
-  TransactionErrorContent
+  TransactionErrorContent,
 } from '../../../../TransactionConfirmationModal'
 import ConfirmStakingModalFooter from '../ModalBase/Footer'
 import ConfirmClaimModalHeader from './Header'
@@ -24,9 +26,11 @@ export default function ConfirmClaimModal({
   errorMessage,
   claimableTokenAmounts,
   onDismiss,
-  onConfirm
+  onConfirm,
 }: ConfirmClaimModalProps) {
-  const [claimedAmounts, setClaimedAmounts] = useState<{ [claimedTokenAddress: string]: TokenAmount }>({})
+  const [claimedAmounts, setClaimedAmounts] = useState<{
+    [claimedTokenAddress: string]: TokenAmount
+  }>({})
   const [disabledConfirm, setDisabledConfirm] = useState(true)
 
   useEffect(() => {
@@ -49,7 +53,10 @@ export default function ConfirmClaimModal({
 
   const handleClaimedAmountChange = useCallback(
     (newAmount: TokenAmount) => {
-      setClaimedAmounts({ ...claimedAmounts, [newAmount.token.address]: newAmount })
+      setClaimedAmounts({
+        ...claimedAmounts,
+        [newAmount.token.address]: newAmount,
+      })
     },
     [claimedAmounts]
   )

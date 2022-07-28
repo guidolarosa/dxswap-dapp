@@ -1,9 +1,11 @@
+import { parseUnits } from '@ethersproject/units'
+import { CurrencyAmount, USD } from '@swapr/sdk'
+
 import { gql, useQuery } from '@apollo/client'
 import Decimal from 'decimal.js-light'
-import { CurrencyAmount, USD } from '@swapr/sdk'
-import { parseUnits } from 'ethers/lib/utils'
 import { DateTime } from 'luxon'
 import { useMemo } from 'react'
+
 import { ZERO_USD } from '../constants'
 
 const QUERY = gql`
@@ -28,10 +30,8 @@ export function usePair24hVolumeUSD(
   const { loading, data, error } = useQuery(isToken ? TOKENQUERY : QUERY, {
     variables: {
       pairOrTokenAddress: pairOrTokenAddress?.toLowerCase(),
-      date: DateTime.utc()
-        .startOf('day')
-        .toSeconds()
-    }
+      date: DateTime.utc().startOf('day').toSeconds(),
+    },
   })
   return useMemo(() => {
     if (loading) return { loading: true, volume24hUSD: ZERO_USD }
@@ -51,7 +51,7 @@ export function usePair24hVolumeUSD(
           ),
           USD.decimals
         ).toString()
-      )
+      ),
     }
   }, [data, error, loading, isToken])
 }

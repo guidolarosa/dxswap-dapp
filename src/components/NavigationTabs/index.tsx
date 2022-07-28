@@ -1,12 +1,14 @@
-import React from 'react'
-import styled from 'styled-components'
+import { useRouter } from 'hooks/useRouter'
 import { darken } from 'polished'
-import { useTranslation } from 'react-i18next'
-import { NavLink, useHistory } from 'react-router-dom'
-
+import React from 'react'
 import { ArrowLeft } from 'react-feather'
-import { RowBetween } from '../Row'
+import { useTranslation } from 'react-i18next'
+import { NavLink } from 'react-router-dom'
+import styled from 'styled-components'
+
 import QuestionHelper from '../QuestionHelper'
+import { RowBetween } from '../Row'
+import { Settings } from '../Settings'
 
 const Tabs = styled.div`
   ${({ theme }) => theme.flexRowNoWrap}
@@ -15,11 +17,9 @@ const Tabs = styled.div`
   justify-content: space-evenly;
 `
 
-const activeClassName = 'ACTIVE'
-
-const StyledNavLink = styled(NavLink).attrs({
-  activeClassName
-})`
+const StyledNavLink = styled(NavLink).withConfig({
+  shouldForwardProp: prop => !['isActive'].includes(prop),
+})<{ isActive: boolean }>`
   ${({ theme }) => theme.flexRowNoWrap}
   align-items: center;
   justify-content: center;
@@ -31,10 +31,14 @@ const StyledNavLink = styled(NavLink).attrs({
   color: ${({ theme }) => theme.text3};
   font-size: 20px;
 
-  &.${activeClassName} {
+  &.active {
+    ${props =>
+      props.isActive &&
+      `
     border-radius: 12px;
     font-weight: 500;
-    color: ${({ theme }) => theme.text1};
+    color: ${props.theme.text1};
+    `}
   }
 
   :hover,
@@ -57,15 +61,16 @@ const StyledArrowLeft = styled(ArrowLeft)`
 
 export function SwapPoolTabs({ active }: { active: 'swap' | 'pool' | 'bridge' }) {
   const { t } = useTranslation()
+
   return (
     <Tabs style={{ marginBottom: '20px', display: 'none' }}>
-      <StyledNavLink id={`swap-nav-link`} to={'/swap'} isActive={() => active === 'swap'}>
+      <StyledNavLink id="swap-nav-link" to="/swap" isActive={active === 'swap'}>
         {t('swap')}
       </StyledNavLink>
-      <StyledNavLink id={`bridge-nav-link`} to={'/bridge'} isActive={() => active === 'bridge'}>
+      <StyledNavLink id="bridge-nav-link" to="/bridge" isActive={active === 'bridge'}>
         {t('bridge')}
       </StyledNavLink>
-      <StyledNavLink id={`pool-nav-link`} to={'/pools'} isActive={() => active === 'pool'}>
+      <StyledNavLink id="pool-nav-link" to="/pools" isActive={active === 'pool'}>
         {t('pool')}
       </StyledNavLink>
     </Tabs>
@@ -73,11 +78,11 @@ export function SwapPoolTabs({ active }: { active: 'swap' | 'pool' | 'bridge' })
 }
 
 export function FindPoolTabs() {
-  const history = useHistory()
+  const { navigate } = useRouter()
   return (
     <Tabs>
       <RowBetween mb="16px">
-        <StyledArrowLeft onClick={history.goBack} />
+        <StyledArrowLeft onClick={() => navigate(-1)} />
         <ActiveText>Import Pool</ActiveText>
         <QuestionHelper text={"Use this tool to find pairs that don't automatically appear in the interface."} />
       </RowBetween>
@@ -86,19 +91,13 @@ export function FindPoolTabs() {
 }
 
 export function AddRemoveTabs({ adding, creating }: { adding: boolean; creating: boolean }) {
-  const history = useHistory()
+  const { navigate } = useRouter()
   return (
     <Tabs>
       <RowBetween mb="16px">
-        <StyledArrowLeft onClick={history.goBack} />
+        <StyledArrowLeft onClick={() => navigate(-1)} />
         <ActiveText>{creating ? 'Create a pair' : adding ? 'Add Liquidity' : 'Remove Liquidity'}</ActiveText>
-        <QuestionHelper
-          text={
-            adding
-              ? 'When you add liquidity, you are given pool tokens representing your position. These tokens automatically earn fees proportional to your share of the pool, and can be redeemed at any time.'
-              : 'Removing pool tokens converts your position back into underlying tokens at the current rate, proportional to your share of the pool. Accrued fees are included in the amounts you receive.'
-          }
-        />
+        <Settings simple={true} />
       </RowBetween>
     </Tabs>
   )

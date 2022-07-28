@@ -1,18 +1,13 @@
 import { createStore, Store } from 'redux'
+
 import { Field, selectCurrency } from './actions'
-import reducer, { SwapState } from './reducer'
+import reducer, { initialState, SwapState } from './reducer'
 
 describe('swap reducer', () => {
   let store: Store<SwapState>
 
   beforeEach(() => {
-    store = createStore(reducer, {
-      [Field.OUTPUT]: { currencyId: '' },
-      [Field.INPUT]: { currencyId: '' },
-      typedValue: '',
-      independentField: Field.INPUT,
-      recipient: null
-    })
+    store = createStore(reducer, initialState)
   })
 
   describe('selectToken', () => {
@@ -20,7 +15,7 @@ describe('swap reducer', () => {
       store.dispatch(
         selectCurrency({
           field: Field.OUTPUT,
-          currencyId: '0x0000'
+          currencyId: '0x0000',
         })
       )
 
@@ -29,7 +24,9 @@ describe('swap reducer', () => {
         [Field.INPUT]: { currencyId: '' },
         typedValue: '',
         independentField: Field.INPUT,
-        recipient: null
+        recipient: null,
+        loading: true,
+        protocolFeeTo: undefined,
       })
     })
   })

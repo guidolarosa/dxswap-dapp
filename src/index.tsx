@@ -1,31 +1,24 @@
 import { createWeb3ReactRoot, Web3ReactProvider } from '@web3-react/core'
-import '@fontsource/montserrat/400.css'
-import '@fontsource/montserrat/500.css'
-import '@fontsource/montserrat/600.css'
-import '@fontsource/montserrat/700.css'
-import '@fontsource/fira-code/500.css'
-import '@fontsource/fira-code/700.css'
-import '@fontsource/fira-mono/500.css'
-import '@fontsource/fira-mono/700.css'
 import React, { StrictMode } from 'react'
 import ReactDOM from 'react-dom'
 import { Provider } from 'react-redux'
 import { HashRouter } from 'react-router-dom'
+
 import { NetworkContextName } from './constants'
 import './i18n'
 import App from './pages/App'
+import { EcoBridgeProvider } from './services/EcoBridge/EcoBridgeProvider'
 import store from './state'
 import ApplicationUpdater from './state/application/updater'
-import MulticallUpdater from './state/multicall/updater'
 import FeesUpdater from './state/fees/updater'
-import TransactionUpdater from './state/transactions/updater'
-import UserUpdater from './state/user/updater'
 import TokenListUpdater from './state/lists/updater'
 import MultiChainLinksUpdater from './state/multi-chain-links/updater'
+import MulticallUpdater from './state/multicall/updater'
+import TransactionUpdater from './state/transactions/updater'
+import UserUpdater from './state/user/updater'
 import ThemeProvider, { FixedGlobalStyle, ThemedGlobalStyle } from './theme'
 import getLibrary from './utils/getLibrary'
-import { BridgeProviders } from './contexts'
-import BridgeTransactionsUpdater from './state/bridgeTransactions/updater'
+
 const Web3ProviderNetwork = createWeb3ReactRoot(NetworkContextName)
 
 if ('ethereum' in window) {
@@ -42,7 +35,6 @@ function Updaters() {
       <UserUpdater />
       <ApplicationUpdater />
       <TransactionUpdater />
-      <BridgeTransactionsUpdater />
       <MulticallUpdater />
       <FeesUpdater />
       <TokenListUpdater />
@@ -56,7 +48,7 @@ ReactDOM.render(
     <Web3ReactProvider getLibrary={getLibrary}>
       <Web3ProviderNetwork getLibrary={getLibrary}>
         <Provider store={store}>
-          <BridgeProviders>
+          <EcoBridgeProvider>
             <Updaters />
             <ThemeProvider>
               <ThemedGlobalStyle />
@@ -65,7 +57,7 @@ ReactDOM.render(
                 <App />
               </HashRouter>
             </ThemeProvider>
-          </BridgeProviders>
+          </EcoBridgeProvider>
         </Provider>
       </Web3ProviderNetwork>
     </Web3ReactProvider>

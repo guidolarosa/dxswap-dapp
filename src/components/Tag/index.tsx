@@ -1,7 +1,8 @@
 import React from 'react'
 import styled from 'styled-components'
-import QuestionHelper from '../QuestionHelper'
+
 import arrowIcon from '../../assets/svg/arrow-bright.svg'
+import QuestionHelper from '../QuestionHelper'
 
 const Tag = styled.div`
   display: inline-block;
@@ -65,6 +66,10 @@ const QuestionHelperWarning = styled(QuestionHelper)`
   height: 10px;
   color: #a86e3f;
   margin-left: 3px;
+
+  svg {
+    stroke: #a86e3f;
+  }
 `
 
 export const TagPending = ({ text }: { text?: string }) => (

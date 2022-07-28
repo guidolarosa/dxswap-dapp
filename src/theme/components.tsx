@@ -1,14 +1,15 @@
-import React, { HTMLProps, useCallback } from 'react'
-import { Link } from 'react-router-dom'
-import styled, { keyframes } from 'styled-components'
 import { darken } from 'polished'
+import React, { HTMLProps, useCallback } from 'react'
 import { ArrowLeft, X } from 'react-feather'
-import { Colors } from './styled'
+import { Link } from 'react-router-dom'
 import { Button as Base, ButtonProps } from 'rebass'
+import styled, { keyframes } from 'styled-components'
+
 import { ButtonInvisbile } from '../components/Button'
+import { Colors } from './styled'
 
 export const Button = styled.button.attrs<{ warning: boolean }, { backgroundColor: string }>(({ warning, theme }) => ({
-  backgroundColor: warning ? theme.red1 : theme.primary1
+  backgroundColor: warning ? theme.red1 : theme.primary1,
 }))`
   padding: 1rem 2rem 1rem 2rem;
   border-radius: 3rem;
@@ -125,20 +126,22 @@ export function ExternalLink({
   rel = 'noopener noreferrer',
   color,
   underlined,
+  disabled,
   ...rest
 }: Omit<HTMLProps<HTMLAnchorElement>, 'as' | 'ref' | 'onClick'> & {
   href: string
   color?: keyof Colors
   underlined?: boolean
+  disabled?: boolean
 }) {
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
       // don't prevent default, don't redirect if it's a new tab
-      if (target !== '_blank' && !event.ctrlKey && !event.metaKey) {
+      if (disabled || (target !== '_blank' && !event.ctrlKey && !event.metaKey)) {
         event.preventDefault()
       }
     },
-    [target]
+    [disabled, target]
   )
   return (
     <StyledLink
@@ -190,7 +193,12 @@ export const HideSmall = styled.span`
   `};
 `
 
-export const IconWrapper = styled.div<{ stroke?: string; size?: string; marginRight?: string; marginLeft?: string }>`
+export const IconWrapper = styled.div<{
+  stroke?: string
+  size?: string
+  marginRight?: string
+  marginLeft?: string
+}>`
   display: flex;
   align-items: center;
   justify-content: center;

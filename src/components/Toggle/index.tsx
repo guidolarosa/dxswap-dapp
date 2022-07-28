@@ -1,5 +1,6 @@
 import React from 'react'
 import styled, { css } from 'styled-components'
+
 import border8pxRadius from '../../assets/images/border-8px-radius.png'
 import { Colors } from '../../theme/styled'
 
@@ -37,7 +38,11 @@ const ToggleElement = styled.span<{
   }
 `
 
-const StyledToggle = styled.button<{ isActive?: boolean; activeElement?: boolean; disabled?: boolean }>`
+const StyledToggle = styled.button<{
+  isActive?: boolean
+  activeElement?: boolean
+  disabled?: boolean
+}>`
   border-radius: 8px;
   border: none;
   background: ${({ theme }) => theme.bg3};
@@ -58,10 +63,22 @@ export interface ToggleProps {
 export default function Toggle({ id, isActive, disabled, toggle }: ToggleProps) {
   return (
     <StyledToggle disabled={disabled} id={id} isActive={isActive} onClick={toggle}>
-      <ToggleElement disabled={disabled} isActive={isActive} isOnSwitch={true} highlightColor="green2">
+      <ToggleElement
+        disabled={disabled}
+        isActive={isActive}
+        isOnSwitch={true}
+        highlightColor="green2"
+        data-testid="toggle-on"
+      >
         On
       </ToggleElement>
-      <ToggleElement disabled={disabled} isActive={!isActive} isOnSwitch={false} highlightColor="red1">
+      <ToggleElement
+        disabled={disabled}
+        isActive={!isActive}
+        isOnSwitch={false}
+        highlightColor="red1"
+        data-testid="toggle-off"
+      >
         Off
       </ToggleElement>
     </StyledToggle>

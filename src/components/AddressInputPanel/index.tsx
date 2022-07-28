@@ -1,11 +1,13 @@
-import React, { useContext, useCallback } from 'react'
-import styled, { ThemeContext } from 'styled-components'
-import useENS from '../../hooks/useENS'
+import React, { useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
+import styled, { useTheme } from 'styled-components'
+
 import { useActiveWeb3React } from '../../hooks'
+import useENS from '../../hooks/useENS'
 import { ExternalLink, TYPE } from '../../theme'
+import { getExplorerLink } from '../../utils'
 import { AutoColumn } from '../Column'
 import { RowBetween } from '../Row'
-import { getExplorerLink } from '../../utils'
 
 const InputPanel = styled.div`
   ${({ theme }) => theme.flexColumnNoWrap}
@@ -68,7 +70,7 @@ const Input = styled.input<{ error?: boolean }>`
 export default function AddressInputPanel({
   id,
   value,
-  onChange
+  onChange,
 }: {
   id?: string
   // the typed string value
@@ -77,7 +79,8 @@ export default function AddressInputPanel({
   onChange: (value: string) => void
 }) {
   const { chainId } = useActiveWeb3React()
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
+  const { t } = useTranslation()
 
   const { address, loading, name } = useENS(value)
 
@@ -103,7 +106,7 @@ export default function AddressInputPanel({
               </TYPE.black>
               {address && chainId && (
                 <ExternalLink href={getExplorerLink(chainId, name ?? address, 'address')} style={{ fontSize: '14px' }}>
-                  (View on block explorer)
+                  {t('viewOnBlockExplorer')}
                 </ExternalLink>
               )}
             </RowBetween>

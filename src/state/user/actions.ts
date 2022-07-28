@@ -1,4 +1,5 @@
 import { createAction } from '@reduxjs/toolkit'
+
 import { MainnetGasPrice } from '../application/actions'
 
 export interface SerializedToken {
@@ -30,3 +31,6 @@ export const removeSerializedToken = createAction<{ chainId: number; address: st
 export const addSerializedPair = createAction<{ serializedPair: SerializedPair }>('user/addSerializedPair')
 export const removeSerializedPair = createAction<{ serializedPair: SerializedPair }>('user/removeSerializedPair')
 export const toggleURLWarning = createAction<void>('app/toggleURLWarning')
+export const updateUserAdvancedSwapDetails = createAction<{ userAdvancedSwapDetails: boolean }>(
+  'user/updateUserAdvancedSwapDetails'
+)

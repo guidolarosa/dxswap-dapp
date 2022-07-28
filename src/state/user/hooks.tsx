@@ -1,10 +1,12 @@
 import { ChainId, Pair, Token } from '@swapr/sdk'
-import flatMap from 'lodash.flatmap'
+
+import { createSelector } from '@reduxjs/toolkit'
+import flatMap from 'lodash/flatMap'
 import { useCallback, useMemo } from 'react'
 import { shallowEqual, useDispatch, useSelector } from 'react-redux'
+
 import { BASES_TO_TRACK_LIQUIDITY_FOR, PINNED_PAIRS } from '../../constants'
 import { PairState, usePairs } from '../../data/Reserves'
-
 import { useActiveWeb3React } from '../../hooks'
 import { useAllTokens } from '../../hooks/Tokens'
 import { MainnetGasPrice } from '../application/actions'
@@ -12,17 +14,18 @@ import { AppDispatch, AppState } from '../index'
 import {
   addSerializedPair,
   addSerializedToken,
+  removeSerializedPair,
   removeSerializedToken,
   SerializedPair,
   SerializedToken,
+  toggleURLWarning,
+  updateUserAdvancedSwapDetails,
   updateUserDarkMode,
   updateUserDeadline,
   updateUserExpertMode,
-  updateUserSlippageTolerance,
-  toggleURLWarning,
-  removeSerializedPair,
   updateUserMultihop,
-  updateUserPreferredGasPrice
+  updateUserPreferredGasPrice,
+  updateUserSlippageTolerance,
 } from './actions'
 
 function serializeToken(token: Token): SerializedToken {
@@ -31,7 +34,7 @@ function serializeToken(token: Token): SerializedToken {
     address: token.address,
     decimals: token.decimals,
     symbol: token.symbol,
-    name: token.name
+    name: token.name,
   }
 }
 
@@ -48,7 +51,7 @@ function deserializeToken(serializedToken: SerializedToken): Token {
 function serializeSimplifiedPair(pair: Pair): SerializedPair {
   return {
     token0: serializeToken(pair.token0),
-    token1: serializeToken(pair.token1)
+    token1: serializeToken(pair.token1),
   }
 }
 
@@ -63,7 +66,7 @@ export function useIsDarkMode(): boolean {
   >(
     ({ user: { matchesDarkMode, userDarkMode } }) => ({
       userDarkMode,
-      matchesDarkMode
+      matchesDarkMode,
     }),
     shallowEqual
   )
@@ -82,13 +85,12 @@ export function useDarkModeManager(): [boolean, () => void] {
   return [darkMode, toggleSetDarkMode]
 }
 
+const selectMultiHop = createSelector(
+  (state: AppState) => state.user.userMultihop,
+  userMultihop => userMultihop
+)
 export function useIsMultihop(): boolean {
-  const { userMultihop } = useSelector<AppState, { userMultihop: boolean }>(
-    ({ user: { userMultihop } }) => ({ userMultihop }),
-    shallowEqual
-  )
-
-  return userMultihop
+  return useSelector(selectMultiHop)
 }
 
 export function useMultihopManager(): [boolean, () => void] {
@@ -102,8 +104,12 @@ export function useMultihopManager(): [boolean, () => void] {
   return [userMultihop, toggleMultihop]
 }
 
-export function useIsExpertMode(): boolean {
-  return useSelector<AppState, AppState['user']['userExpertMode']>(state => state.user.userExpertMode)
+const selectExpertMode = createSelector(
+  (state: AppState) => state.user.userExpertMode,
+  userExpertMode => userExpertMode
+)
+export function useIsExpertMode() {
+  return useSelector<AppState, AppState['user']['userExpertMode']>(selectExpertMode)
 }
 
 export function useExpertModeManager(): [boolean, () => void] {
@@ -117,11 +123,17 @@ export function useExpertModeManager(): [boolean, () => void] {
   return [expertMode, toggleSetExpertMode]
 }
 
-export function useUserSlippageTolerance(): [number, (slippage: number) => void] {
+const selectUserSlippageTolerance = createSelector(
+  (state: AppState) => state.user.userSlippageTolerance,
+  userSlippageTolerance => userSlippageTolerance
+)
+export function useUserSlippageTolerance() {
+  return useSelector<AppState, AppState['user']['userSlippageTolerance']>(selectUserSlippageTolerance)
+}
+
+export function useUserSlippageToleranceManager(): [number, (slippage: number) => void] {
   const dispatch = useDispatch<AppDispatch>()
-  const userSlippageTolerance = useSelector<AppState, AppState['user']['userSlippageTolerance']>(state => {
-    return state.user.userSlippageTolerance
-  })
+  const userSlippageTolerance = useUserSlippageTolerance()
 
   const setUserSlippageTolerance = useCallback(
     (userSlippageTolerance: number) => {
@@ -245,6 +257,25 @@ export function useURLWarningToggle(): () => void {
   return useCallback(() => dispatch(toggleURLWarning()), [dispatch])
 }
 
+export function useIsOpenAdvancedSwapDetails(): boolean {
+  return useSelector<AppState, AppState['user']['userAdvancedSwapDetails']>(state => state.user.userAdvancedSwapDetails)
+}
+
+export function useAdvancedSwapDetails(): [boolean, () => void] {
+  const dispatch = useDispatch<AppDispatch>()
+  const advancedSwapDetails = useIsOpenAdvancedSwapDetails()
+
+  const toggleSetAdvancedSwapDetails = useCallback(() => {
+    dispatch(
+      updateUserAdvancedSwapDetails({
+        userAdvancedSwapDetails: !advancedSwapDetails,
+      })
+    )
+  }, [advancedSwapDetails, dispatch])
+
+  return [advancedSwapDetails, toggleSetAdvancedSwapDetails]
+}
+
 /**
  * Given two tokens return the liquidity token that represents its liquidity shares
  * @param tokenA one of the two tokens
@@ -305,11 +336,10 @@ export function useTrackedTokenPairs(): [Token, Token][] {
     })
   }, [savedSerializedPairs, chainId])
 
-  const combinedList = useMemo(() => userPairs.concat(generatedPairs).concat(pinnedPairs), [
-    generatedPairs,
-    pinnedPairs,
-    userPairs
-  ])
+  const combinedList = useMemo(
+    () => userPairs.concat(generatedPairs).concat(pinnedPairs),
+    [generatedPairs, pinnedPairs, userPairs]
+  )
 
   return useMemo(() => {
     // dedupes pairs of tokens in the combined list

@@ -1,19 +1,19 @@
 import { LiquidityMiningCampaign, SingleSidedLiquidityMiningCampaign } from '@swapr/sdk'
+
 import React, { useEffect, useRef, useState } from 'react'
 import { Box, Flex, Text } from 'rebass'
 import styled from 'styled-components'
-import { Pagination } from '../../Pagination'
 
-import { Empty } from '../../Pool/Empty'
-import { LoadingList } from '../../Pool/LoadingList'
+import { useNativeCurrencyUSDPrice } from '../../../hooks/useNativeCurrencyUSDPrice'
 import { usePage } from '../../../hooks/usePage'
 import { useWindowSize } from '../../../hooks/useWindowSize'
 import { MEDIA_WIDTHS } from '../../../theme'
-
-import { useNativeCurrencyUSDPrice } from '../../../hooks/useNativeCurrencyUSDPrice'
 import { getStakedAmountUSD } from '../../../utils/liquidityMining'
-import { UndecoratedLink } from '../../UndercoratedLink'
+import { Pagination } from '../../Pagination'
+import { Empty } from '../../Pool/Empty'
+import { LoadingGrid } from '../../Pool/LoadingGrid'
 import { CampaignCard } from '../../Pool/PairsList/CampaignCard'
+import { UndecoratedLink } from '../../UndercoratedLink'
 
 const ListLayout = styled.div`
   display: grid;
@@ -35,11 +35,12 @@ interface LiquidityMiningCampaignsListProps {
     containsKpiToken: boolean
   }[]
   loading?: boolean
+  loadingItems?: number
 }
 
 const { upToMedium, upToExtraSmall } = MEDIA_WIDTHS
 
-export default function List({ loading, items = [] }: LiquidityMiningCampaignsListProps) {
+export default function List({ loading, items = [], loadingItems }: LiquidityMiningCampaignsListProps) {
   const { width } = useWindowSize()
   const [page, setPage] = useState(1)
   const prevItemsCt = useRef(items.length)
@@ -74,7 +75,7 @@ export default function List({ loading, items = [] }: LiquidityMiningCampaignsLi
       <Flex flexDirection="column">
         <Box mb="8px">
           {overallLoading ? (
-            <LoadingList isMobile={true} itemsAmount={responsiveItemsPerPage} />
+            <LoadingGrid itemsAmount={loadingItems || responsiveItemsPerPage} />
           ) : itemsPage.length > 0 ? (
             <ListLayout>
               {itemsPage.map(item => {
@@ -82,7 +83,7 @@ export default function List({ loading, items = [] }: LiquidityMiningCampaignsLi
                   return (
                     <UndecoratedLink
                       key={item.campaign.address}
-                      to={`/rewards/${item.campaign.stakeToken.address}/${item.campaign.address}/singleSidedStaking`}
+                      to={`/rewards/single-sided-campaign/${item.campaign.stakeToken.address}/${item.campaign.address}`}
                     >
                       <CampaignCard
                         token0={item.campaign.stakeToken}
@@ -105,7 +106,7 @@ export default function List({ loading, items = [] }: LiquidityMiningCampaignsLi
                   return (
                     <UndecoratedLink
                       key={item.campaign.address}
-                      to={`/rewards/${token0?.address}/${token1?.address}/${item.campaign.address}`}
+                      to={`/rewards/campaign/${token0?.address}/${token1?.address}/${item.campaign.address}`}
                     >
                       <CampaignCard
                         token0={token0}

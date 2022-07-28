@@ -1,6 +1,8 @@
-import { ReactNode, RefObject } from 'react'
 import { ChainId } from '@swapr/sdk'
+
 import { Placement } from '@popperjs/core'
+import { ReactNode, RefObject } from 'react'
+
 export interface NetworkSwitcherProps {
   children?: ReactNode
   show: boolean
@@ -9,12 +11,6 @@ export interface NetworkSwitcherProps {
   placement?: Placement
   showWalletConnector?: boolean
   parentRef?: RefObject<HTMLElement>
-  showWrongNetworkPopover?: boolean
-}
-
-export interface EthereumOptionPopoverProps {
-  children: ReactNode
-  show: boolean
 }
 
 export type NetworkOptionsPreset = {
@@ -22,7 +18,7 @@ export type NetworkOptionsPreset = {
   name: React.ReactNode
   logoSrc: string
   color: string
-  tag?: string
+  tag?: NetworkSwitcherTags
 }
 
 export type NetworkOptions = {
@@ -30,9 +26,15 @@ export type NetworkOptions = {
   active?: boolean
   disabled?: boolean
   onClick?: any
+  connected?: boolean
 }
 
 export type NetworksList = {
-  tag: string
+  tag?: NetworkSwitcherTags
   networks: NetworkOptions[]
+}
+
+export enum NetworkSwitcherTags {
+  TESTNETS = 'testnets',
+  COMING_SOON = 'coming soon',
 }

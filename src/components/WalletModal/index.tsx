@@ -1,18 +1,20 @@
 import { AbstractConnector } from '@web3-react/abstract-connector'
-import { UnsupportedChainIdError, useWeb3React } from '@web3-react/core'
+import { useWeb3React } from '@web3-react/core'
 import React, { useCallback, useEffect } from 'react'
+import { AlertTriangle } from 'react-feather'
 import styled from 'styled-components'
+
 import { ReactComponent as Close } from '../../assets/images/x.svg'
+import DxDao from '../../assets/svg/dxdao.svg'
+import { useUnsupportedChainIdError } from '../../hooks'
 import usePrevious from '../../hooks/usePrevious'
+import { useWalletSwitcherPopoverToggle } from '../../state/application/hooks'
 import { TYPE } from '../../theme'
 import AccountDetails from '../AccountDetails'
 import Modal from '../Modal'
-import PendingView from './PendingView'
-import DxDao from '../../assets/svg/dxdao.svg'
 import { AutoRow } from '../Row'
-import { AlertTriangle } from 'react-feather'
 import { ModalView } from '../Web3Status'
-import { useWalletSwitcherPopoverToggle } from '../../state/application/hooks'
+import PendingView from './PendingView'
 
 const CloseIcon = styled.div`
   position: absolute;
@@ -120,7 +122,7 @@ export default function WalletModal({
   tryActivation,
   pendingError,
   setPendingError,
-  pendingWallet
+  pendingWallet,
 }: WalletModalProps) {
   const { active, account, connector, error } = useWeb3React()
 
@@ -158,6 +160,7 @@ export default function WalletModal({
     setModal(null)
     toggleWalletSwitcherPopover()
   }
+  const unsupportedChainIdError = useUnsupportedChainIdError()
 
   function getModalContent() {
     if (error) {
@@ -170,14 +173,14 @@ export default function WalletModal({
             <AutoRow gap="6px">
               <StyledWarningIcon size="20px" />
               <TYPE.main fontSize="16px" lineHeight="22px" color={'text3'}>
-                {error instanceof UnsupportedChainIdError ? 'Wrong Network' : 'Error connecting'}
+                {unsupportedChainIdError ? 'Wrong Network' : 'Error connecting'}
               </TYPE.main>
             </AutoRow>
           </HeaderRow>
           <ContentWrapper>
             <TYPE.yellow color="text4">
               <h5>
-                {error instanceof UnsupportedChainIdError
+                {unsupportedChainIdError
                   ? 'Please connect to the appropriate network.'
                   : 'Error connecting. Try refreshing the page.'}
               </h5>
@@ -228,7 +231,7 @@ export default function WalletModal({
             tryActivation={tryActivation}
           />
         </ContentWrapper>
-        <Blurb as="a" href="https://dxdao.eth.link/" rel="noopener noreferrer" target="_blank">
+        <Blurb as="a" href="https://dxdao.eth.limo/" rel="noopener noreferrer" target="_blank">
           <TYPE.body fontWeight={700} fontSize="10px" color="text1" letterSpacing="3px" marginBottom="8px">
             A DXDAO PRODUCT
           </TYPE.body>

@@ -1,15 +1,16 @@
+import { transparentize } from 'polished'
 import React, { useMemo } from 'react'
+import 'react-datepicker/dist/react-datepicker.min.css'
+import { Text, TextProps } from 'rebass'
 import styled, {
-  ThemeProvider as StyledComponentsThemeProvider,
   createGlobalStyle,
   css,
-  DefaultTheme
+  DefaultTheme,
+  ThemeProvider as StyledComponentsThemeProvider,
 } from 'styled-components'
+
 import { useIsDarkMode } from '../state/user/hooks'
-import { Text, TextProps } from 'rebass'
 import { Colors } from './styled'
-import 'react-datepicker/dist/react-datepicker.min.css'
-import { transparentize } from 'polished'
 
 export * from './components'
 
@@ -17,20 +18,19 @@ export const MEDIA_WIDTHS = {
   upToExtraSmall: 500,
   upToSmall: 720,
   upToMedium: 960,
-  upToLarge: 1280
+  upToLarge: 1280,
 }
 
-const mediaWidthTemplates: { [width in keyof typeof MEDIA_WIDTHS]: typeof css } = Object.keys(MEDIA_WIDTHS).reduce(
-  (accumulator, size) => {
-    ;(accumulator as any)[size] = (a: any, b: any, c: any) => css`
-      @media (max-width: ${(MEDIA_WIDTHS as any)[size]}px) {
-        ${css(a, b, c)}
-      }
-    `
-    return accumulator
-  },
-  {}
-) as any
+const mediaWidthTemplates: {
+  [width in keyof typeof MEDIA_WIDTHS]: typeof css
+} = Object.keys(MEDIA_WIDTHS).reduce((accumulator, size) => {
+  ;(accumulator as any)[size] = (a: any, b: any, c: any) => css`
+    @media (max-width: ${(MEDIA_WIDTHS as any)[size]}px) {
+      ${css(a, b, c)}
+    }
+  `
+  return accumulator
+}, {}) as any
 
 const white = '#FFFFFF'
 const black = '#000000'
@@ -47,6 +47,7 @@ export function colors(darkMode: boolean): Colors {
     text3: darkMode ? '#DDDAF8' : '#8E89C6',
     text4: darkMode ? '#C0BAF6' : '#A7A0E4',
     text5: darkMode ? '#8780BF' : '#C0BAF6',
+    text6: '#504D72',
 
     // backgrounds / greys
     bg1: darkMode ? '#191A24' : '#FFFFFF',
@@ -55,6 +56,9 @@ export function colors(darkMode: boolean): Colors {
     bg3: darkMode ? '#3E4259' : '#DDDAF8',
     bg4: darkMode ? '#686E94' : '#C0BBE9',
     bg5: darkMode ? '#9096BE' : '#7873A4',
+    bg6: '#171621',
+    bg7: '#2D3040',
+    bg8: '#191A24',
 
     //specialty colors
     modalBG: darkMode ? 'rgba(0,0,0,.425)' : 'rgba(0,0,0,0.3)',
@@ -84,7 +88,9 @@ export function colors(darkMode: boolean): Colors {
     yellow1: '#FFE270',
     yellow2: '#F3841E',
     blue1: '#2172E5',
+    dark4: '#BCB3F0',
 
+    gray1: '#737798',
     // dont wanna forget these blue yet
     // blue4: darkMode ? '#153d6f70' : '#C4D9F8',
     // blue5: darkMode ? '#153d6f70' : '#EBF4FF',
@@ -97,12 +103,15 @@ export function colors(darkMode: boolean): Colors {
     purple3: '#8780BF',
     purple4: '#685EC6',
     purple5: '#464366',
+    lightPurple: '#C0BAF7',
+    lightPurple2: '##8C83C0',
+    purple6: '#292643',
     boxShadow: '#0A0A0F',
 
     // darkest // dark 1.1
     darkest: '#161721',
     dark1: '#191824',
-    dark2: '#2A2F42'
+    dark2: '#2A2F42',
   }
 }
 
@@ -115,7 +124,7 @@ export function theme(darkMode: boolean): DefaultTheme {
     grids: {
       sm: 8,
       md: 12,
-      lg: 24
+      lg: 24,
     },
 
     //shadows
@@ -132,7 +141,7 @@ export function theme(darkMode: boolean): DefaultTheme {
     flexRowNoWrap: css`
       display: flex;
       flex-flow: row nowrap;
-    `
+    `,
   }
 }
 
@@ -144,8 +153,8 @@ export default function ThemeProvider({ children }: { children: React.ReactNode 
   return <StyledComponentsThemeProvider theme={themeObject}>{children}</StyledComponentsThemeProvider>
 }
 
-const TextWrapper = styled(Text)<{ color: keyof Colors }>`
-  color: ${({ color, theme }) => (theme as any)[color]};
+const TextWrapper = styled(({ color: _color, ...rest }) => <Text {...rest} />)`
+  color: ${({ color, theme }) => theme[color]};
 `
 
 export const TYPE = {
@@ -162,7 +171,7 @@ export const TYPE = {
     return <TextWrapper fontWeight={500} color={'white'} {...props} />
   },
   body(props: TextProps) {
-    return <TextWrapper fontWeight={400} fontSize={16} color={'text5'} {...props} />
+    return <TextWrapper fontWeight={400} fontSize={14} lineHeight="20px" color={'text5'} {...props} />
   },
   largeHeader(props: TextProps) {
     return <TextWrapper fontWeight={600} fontSize={24} {...props} />
@@ -193,13 +202,13 @@ export const TYPE = {
   },
   error({ error, ...props }: { error: boolean } & TextProps) {
     return <TextWrapper fontWeight={500} color={error ? 'red1' : 'text2'} {...props} />
-  }
+  },
 }
 
 export const FixedGlobalStyle = createGlobalStyle`
-html, input, textarea, button {
-  font-family: 'Montserrat', sans-serif;
-  font-display: fallback;
+* {
+  font-family: 'Inter', Arial, Helvetica;
+  font-feature-settings: 'ss01', 'zero', 'tnum';
 }
 
 html,
@@ -227,6 +236,10 @@ html {
 
 a {
   text-decoration: none;
+}
+
+body.no-margin {
+  margin: 0 !important;
 }
 `
 
@@ -257,7 +270,6 @@ body {
 }
 
 .react-datepicker {
-  font-family: Montserrat !important;
   border: solid 1px ${props => props.theme.bg5} !important;
   border-radius: 8px !important;
   color: ${props => props.theme.text4} !important;
@@ -376,6 +388,7 @@ body {
 
 .custom-toast-root {
     margin-top: 86px;
+    min-width: 350px;
 }
 
 .custom-toast-container {
@@ -384,27 +397,24 @@ body {
 }
 
 .custom-toast-body {
-    font-family: "Montserrat";
     padding: 4px 8px;
+}
+
+.custom-toast-body a{
+  font-size: 14px;
 }
 
 .Toastify__toast {
     min-height: auto !important;
-    padding: 16px;
-}
-
-.Toastify__toast-body {
-    margin: 0 !important;
-}
-
-.Toastify__close-button {
-  position: absolute;
-  right: 12px;
-  top: 12px;
+    padding: 8px 10px 12px 4px;
 }
 
 .Toastify__toast--info {
     background: ${props => props.theme.bg1} !important;
+}
+
+.walletconnect-connect__button__text {
+  font-size: inherit !important;
 }
 
 @media only screen and (max-width: 600px) {
@@ -418,6 +428,10 @@ body {
   .Toastify__toast-container {
 	    width: auto !important;
 	}
+
+  .walletconnect-connect__button__text {
+    font-size: 10px !important;
+  }
 }
 
 .rc-pagination-simple-pager {
@@ -440,5 +454,314 @@ body {
 
 .walletconnect-modal__mobile__toggle a {
   color: rgb(64, 153, 255);
+}
+
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(359deg);
+  }
+}
+
+.rotate {
+  animation: rotation 2s infinite linear;
+}
+
+@keyframes loading-rotations {
+  0% {
+    opacity:1;
+  }
+  6.25% {
+    opacity:1;
+  }
+  12.5% {
+    opacity:0;
+  }
+  93.75% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+
+
+@keyframes loading-rotations-3 {
+  0% {
+    opacity:1;
+  }
+  22% {
+    opacity:1;
+  }
+  34% {
+    opacity:0;
+  }
+  88% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@keyframes loading-rotations-4 {
+  0% {
+    opacity:1;
+  }
+  17% {
+    opacity:1;
+  }
+  25% {
+    opacity:0;
+  }
+  91% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@keyframes loading-rotations-5 {
+  0% {
+    opacity:1;
+  }
+  13% {
+    opacity:1;
+  }
+  20% {
+    opacity:0;
+  }
+  93% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@keyframes loading-rotations-6 {
+  0% {
+    opacity:1;
+  }
+  11% {
+    opacity:1;
+  }
+  17% {
+    opacity:0;
+  }
+  94% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@keyframes loading-rotations-7 {
+  0% {
+    opacity:1;
+  }
+  9.5% {
+    opacity:1;
+  }
+  14.2% {
+    opacity:0;
+  }
+  95% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+@keyframes loading-rotations-8 {
+  0% {
+    opacity:1;
+  }
+  8.33% {
+    opacity:1;
+  }
+  12.5% {
+    opacity:0;
+  }
+  96% {
+    opacity:0;
+  }
+  100% {
+    opacity:1;
+  }
+}
+
+.loading-button{
+  position:relative;
+  display: flex;
+  flex: 1;
+  justify-content: start;
+  align-items: flex-end;
+  height: 20px;
+  margin-left: 11px;
+}
+
+.loading-button>div {
+  position: absolute;
+  opacity: 0;
+  display: flex;
+}
+
+.loading-button>div>div{
+  padding: 0px 5px;
+}
+
+.loading-rotation-3>div {
+  animation-name: loading-rotations-3;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 6s;
+}
+
+.loading-rotation-3>div:nth-of-type(1) {
+  animation-delay: 4s;
+}
+.loading-rotation-3>div:nth-of-type(2) {
+  animation-delay: 2s;
+}
+.loading-rotation-3>div:nth-of-type(3) {
+  animation-delay: 0s;
+}
+
+.loading-rotation-4>div {
+  animation-name: loading-rotations-4;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 8s;
+}
+
+.loading-rotation-4>div:nth-of-type(1) {
+  animation-delay: 6s;
+}
+.loading-rotation-4>div:nth-of-type(2) {
+  animation-delay: 4s;
+}
+.loading-rotation-4>div:nth-of-type(3) {
+  animation-delay: 2s;
+}
+.loading-rotation-4>div:nth-of-type(4) {
+  animation-delay: 0s;
+}
+
+
+.loading-rotation-5>div {
+  animation-name: loading-rotations-5;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 10s;
+}
+
+.loading-rotation-5>div:nth-of-type(1) {
+  animation-delay: 8s;
+}
+.loading-rotation-5>div:nth-of-type(2) {
+  animation-delay: 6s;
+}
+.loading-rotation-5>div:nth-of-type(3) {
+  animation-delay: 4s;
+}
+.loading-rotation-5>div:nth-of-type(4) {
+  animation-delay: 2s;
+}
+.loading-rotation-5>div:nth-of-type(5) {
+  animation-delay: 0s;
+}
+
+.loading-rotation-6>div {
+  animation-name: loading-rotations-6;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 12s;
+}
+
+.loading-rotation-6>div:nth-of-type(1) {
+  animation-delay: 10s;
+}
+.loading-rotation-6>div:nth-of-type(2) {
+  animation-delay: 8s;
+}
+.loading-rotation-6>div:nth-of-type(3) {
+  animation-delay: 6s;
+}
+.loading-rotation-6>div:nth-of-type(4) {
+  animation-delay: 4s;
+}
+.loading-rotation-6>div:nth-of-type(5) {
+  animation-delay: 2s;
+}
+.loading-rotation-6>div:nth-of-type(6) {
+  animation-delay: 0s;
+}
+
+.loading-rotation-7>div {
+  animation-name: loading-rotations-7;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 14s;
+}
+
+.loading-rotation-7>div:nth-of-type(1) {
+  animation-delay: 12s;  
+}
+.loading-rotation-7>div:nth-of-type(2) {
+  animation-delay: 10s;  
+}
+.loading-rotation-7>div:nth-of-type(3) {
+  animation-delay: 8s;  
+}
+.loading-rotation-7>div:nth-of-type(4) {
+  animation-delay: 6s;  
+}
+.loading-rotation-7>div:nth-of-type(5) {
+  animation-delay: 4s;
+}
+.loading-rotation-7>div:nth-of-type(6) {
+  animation-delay: 2s;
+}
+.loading-rotation-7>div:nth-of-type(7) {
+  animation-delay: 0s;
+}
+
+.loading-rotation-8>div {
+  animation-name: loading-rotations-8;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-duration: 16s;
+}
+
+.loading-rotation-8>div:nth-of-type(1) {
+  animation-delay: 14s;  
+}
+.loading-rotation-8>div:nth-of-type(2) {
+  animation-delay: 12s;  
+}
+.loading-rotation-8>div:nth-of-type(3) {
+  animation-delay: 10s;  
+}
+.loading-rotation-8>div:nth-of-type(4) {
+  animation-delay: 8s;  
+}
+.loading-rotation-8>div:nth-of-type(5) {
+  animation-delay: 6s;
+}
+.loading-rotation-8>div:nth-of-type(6) {
+  animation-delay: 4s;
+}
+.loading-rotation-8>div:nth-of-type(7) {
+  animation-delay: 2s;
+}
+.loading-rotation-8>div:nth-of-type(8) {
+  animation-delay: 0s;
 }
 `

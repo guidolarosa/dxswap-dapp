@@ -1,14 +1,18 @@
-import { Contract } from '@ethersproject/contracts'
 import { getAddress } from '@ethersproject/address'
-import { AddressZero } from '@ethersproject/constants'
-import { JsonRpcSigner, Web3Provider, JsonRpcProvider } from '@ethersproject/providers'
 import { BigNumber } from '@ethersproject/bignumber'
+import { AddressZero } from '@ethersproject/constants'
+import { Contract } from '@ethersproject/contracts'
+import { JsonRpcProvider, JsonRpcSigner, Web3Provider } from '@ethersproject/providers'
 import { abi as IDXswapRouterABI } from '@swapr/periphery/build/IDXswapRouter.json'
-import { ChainId, JSBI, Percent, Token, CurrencyAmount, Currency, Pair, RoutablePlatform } from '@swapr/sdk'
-import { TokenAddressMap } from '../state/lists/hooks'
+import { ChainId, Currency, CurrencyAmount, JSBI, Pair, Percent, Token, UniswapV2RoutablePlatform } from '@swapr/sdk'
+
 import Decimal from 'decimal.js-light'
 import { commify } from 'ethers/lib/utils'
+import styled from 'styled-components'
+
+import { ReactComponent as ConnectedSvg } from '../assets/svg/connected.svg'
 import { NetworkDetails } from '../constants'
+import { TokenAddressMap } from '../state/lists/hooks'
 
 // returns the checksummed address if the address is valid, otherwise returns false
 export function isAddress(value: any): string | false {
@@ -19,12 +23,12 @@ export function isAddress(value: any): string | false {
   }
 }
 
-const ETHERSCAN_PREFIXES: { [chainId in ChainId]: string } = {
+const ETHERSCAN_PREFIXES: { [chainId in ChainId | number]: string } = {
   1: '',
   4: 'rinkeby.',
   [ChainId.ARBITRUM_ONE]: '',
   [ChainId.ARBITRUM_RINKEBY]: '',
-  [ChainId.XDAI]: ''
+  [ChainId.XDAI]: '',
 }
 
 const getExplorerPrefix = (chainId: ChainId) => {
@@ -35,6 +39,8 @@ const getExplorerPrefix = (chainId: ChainId) => {
       return 'https://testnet.arbiscan.io'
     case ChainId.XDAI:
       return 'https://blockscout.com/xdai/mainnet'
+    case ChainId.POLYGON:
+      return 'https://polygonscan.com/'
     default:
       return `https://${ETHERSCAN_PREFIXES[chainId] || ETHERSCAN_PREFIXES[1]}etherscan.io`
   }
@@ -69,6 +75,12 @@ export function getExplorerLink(
   }
 }
 
+export function getAccountAnalyticsLink(account: string, chainId: ChainId | undefined): string {
+  return account
+    ? `https://dxstats.eth.limo/#/account/${account}?chainId=${chainId}`
+    : `https://dxstats.eth.limo/#/accounts?chainId=${chainId}`
+}
+
 // shorten the checksummed version of the input address to have 0x + 4 characters at start and end
 export function shortenAddress(address: string, charsBefore = 4, charsAfter = 4): string {
   const parsed = isAddress(address)
@@ -94,7 +106,7 @@ export function calculateSlippageAmount(value: CurrencyAmount, slippage: number)
   }
   return [
     JSBI.divide(JSBI.multiply(value.raw, JSBI.BigInt(10000 - slippage)), JSBI.BigInt(10000)),
-    JSBI.divide(JSBI.multiply(value.raw, JSBI.BigInt(10000 + slippage)), JSBI.BigInt(10000))
+    JSBI.divide(JSBI.multiply(value.raw, JSBI.BigInt(10000 + slippage)), JSBI.BigInt(10000)),
   ]
 }
 
@@ -124,7 +136,7 @@ export function getContract(address: string, ABI: any, library: Web3Provider, ac
 export function getRouterContract(
   chainId: ChainId,
   library: Web3Provider,
-  platform: RoutablePlatform,
+  platform: UniswapV2RoutablePlatform,
   account?: string
 ): Contract {
   return getContract(
@@ -175,12 +187,16 @@ export const formatCurrencyAmount = (amount: CurrencyAmount, significantDecimalP
   return `${commify(integers)}.${adjustedDecimals}`
 }
 
+export const calculatePercentage = (value: number, percentage: number): number => {
+  return Math.round((percentage / 100) * value)
+}
+
 export const switchOrAddNetwork = (networkDetails?: NetworkDetails, account?: string) => {
   if (!window.ethereum || !window.ethereum.request || !window.ethereum.isMetaMask || !networkDetails || !account) return
   window.ethereum
     .request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: networkDetails.chainId }]
+      params: [{ chainId: networkDetails.chainId }],
     })
     .catch(error => {
       if (error.code !== 4902) {
@@ -190,10 +206,61 @@ export const switchOrAddNetwork = (networkDetails?: NetworkDetails, account?: st
       window.ethereum
         .request({
           method: 'wallet_addEthereumChain',
-          params: [{ ...networkDetails }, account]
+          params: [{ ...networkDetails }, account],
         })
         .catch(error => {
           console.error('error adding chain with id', networkDetails.chainId, error)
         })
     })
+}
+
+export const StyledConnectedIcon = styled(ConnectedSvg)<{ width?: string; padding?: string; margin?: string }>`
+  min-width: ${props => (props.width ? props.width : '22px')};
+  padding: ${props => (props.padding ? props.padding : '0')};
+  margin: ${props => (props.margin ? props.margin : '0')};
+`
+export const normalizeInputValue = (val: string, strictFormat?: boolean) => {
+  const normalizedValue = val.replace(/^0+(?=\d+)/, '').replace(/^\./, '0.')
+
+  return strictFormat
+    ? normalizedValue.replace(/^([\d,]+)$|^([\d,]+)\.0*$|^([\d,]+\.[0-9]*?)0*$/, '$1$2$3')
+    : normalizedValue
+}
+
+/**
+ * Gnosis Protocol Explorer Base URL list
+ */
+const GNOSIS_PROTOCOL_EXPLORER_BASE_URL = {
+  [ChainId.MAINNET]: 'https://explorer.cow.fi',
+  [ChainId.RINKEBY]: 'https://explorer.cow.fi/rinkeby',
+  [ChainId.XDAI]: 'https://explorer.cow.fi/xdai',
+}
+
+/**
+ * Returns the Gnosis Protocol Explorer Base link
+ * @param chainId the chain Id
+ * @returns the explorer URL for given chain ID
+ */
+export function getGnosisProtocolExplorerLink(chainId: ChainId): string {
+  return GNOSIS_PROTOCOL_EXPLORER_BASE_URL[chainId as keyof typeof GNOSIS_PROTOCOL_EXPLORER_BASE_URL]
+}
+
+/**
+ * Returns the Gnosis Protocol Explorer order link
+ * @param chainId the chain Id
+ * @param orderId the order ID
+ * @returns the order link
+ */
+export function getGnosisProtocolExplorerOrderLink(chainId: ChainId, orderId: string): string {
+  return getGnosisProtocolExplorerLink(chainId) + `/orders/${orderId}`
+}
+
+/**
+ * Returns the Gnosis Protocol Explorer order link
+ * @param chainId the chain Id
+ * @param address the order address
+ * @returns the order link
+ */
+export function getGnosisProtocolExplorerAddressLink(chainId: ChainId, address: string): string {
+  return getGnosisProtocolExplorerLink(chainId) + `/address/${address}`
 }

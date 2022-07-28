@@ -1,4 +1,5 @@
-import { Percent, PricedTokenAmount, TokenAmount, KpiToken, Token, Pair } from '@swapr/sdk'
+import { KpiToken, Pair, Percent, PricedTokenAmount, Token, TokenAmount } from '@swapr/sdk'
+
 import { commify } from 'ethers/lib/utils'
 import { DateTime } from 'luxon'
 import { transparentize } from 'polished'
@@ -7,17 +8,19 @@ import { Lock, Unlock } from 'react-feather'
 import Skeleton from 'react-loading-skeleton'
 import { Box, Flex, Text } from 'rebass'
 import styled from 'styled-components'
+
+import { useActiveWeb3React } from '../../../../hooks'
 import { useNativeCurrencyUSDPrice } from '../../../../hooks/useNativeCurrencyUSDPrice'
 import { ExternalLink, TYPE } from '../../../../theme'
+import { unwrappedToken } from '../../../../utils/wrappedCurrency'
 import { CarrotButton } from '../../../Button'
 import { AutoColumn } from '../../../Column'
 import Countdown from '../../../Countdown'
-import CurrencyLogo from '../../../CurrencyLogo'
+import { CurrencyLogo } from '../../../CurrencyLogo'
 import DoubleCurrencyLogo from '../../../DoubleLogo'
 import Row, { AutoRow, RowBetween, RowFixed } from '../../../Row'
 import DataDisplayer from '../DataDisplayer'
 import TokenAmountDisplayer from '../TokenAmountDisplayer'
-import { useActiveWeb3React } from '../../../../hooks'
 
 const KpiTokenInfoContainer = styled.div`
   width: 100%;
@@ -179,7 +182,7 @@ function Information({
   apy,
   staked,
   containsKpiToken,
-  showUSDValue
+  showUSDValue,
 }: InformationProps) {
   const { chainId } = useActiveWeb3React()
   const { loading: loadingNativeCurrencyUSDPrice, nativeCurrencyUSDPrice } = useNativeCurrencyUSDPrice()
@@ -219,14 +222,14 @@ function Information({
                     <CurrencyLogo currency={targetedPair} loading={!targetedPair} />
                   )}
                 </Box>
-                <Box>
+                <Box data-testid="campaign-tokens">
                   <Text fontSize="18px" fontWeight="600" lineHeight="20px">
                     {!targetedPair ? (
                       <Skeleton width="60px" height="18px" />
                     ) : targetedPair instanceof Token ? (
-                      targetedPair.symbol
+                      unwrappedToken(targetedPair)?.symbol
                     ) : targetedPair instanceof Pair ? (
-                      `${targetedPair.token0.symbol}/${targetedPair.token1.symbol}`
+                      `${unwrappedToken(targetedPair.token0)?.symbol}/${unwrappedToken(targetedPair.token1)?.symbol}`
                     ) : (
                       ''
                     )}
@@ -255,7 +258,7 @@ function Information({
                 <Skeleton width="40px" height="14px" />
               ) : (
                 <BadgeRoot expired={expired} upcoming={upcoming}>
-                  <BadgeText expired={expired} upcoming={upcoming}>
+                  <BadgeText expired={expired} upcoming={upcoming} data-testid="campaign-status">
                     {expired ? 'EXPIRED' : upcoming ? 'UPCOMING' : 'ACTIVE'}
                   </BadgeText>
                 </BadgeRoot>
@@ -306,7 +309,7 @@ function Information({
           />
         </MaxPollSizeSection>
         <RewardsSection alignItems="flex-start">
-          <Box mr="24px">
+          <Box mr="24px" data-testid="rewards-box">
             <DataDisplayer
               title="REWARDS"
               data={
@@ -382,7 +385,7 @@ function Information({
           />
         </PoolTypeSection>
         <DatesSection>
-          <Box mr="24px">
+          <Box mr="24px" data-testid="start-date">
             <DataDisplayer
               title="START"
               data={
@@ -395,7 +398,7 @@ function Information({
               dataTextSize={10.5}
             />
           </Box>
-          <Box>
+          <Box data-testid="end-date">
             <DataDisplayer
               title="END"
               data={
@@ -431,7 +434,7 @@ function Information({
                   </AutoColumn>
                 </AutoRow>
                 <CarrotButton
-                  link={`https://carrot.eth.link/#/campaigns/${reward.token.kpiId}?chainId=${chainId}`}
+                  link={`https://carrot.eth.limo/#/campaigns/${reward.token.kpiId}?chainId=${chainId}`}
                   text="Go to campaign"
                 />
               </RowBetween>

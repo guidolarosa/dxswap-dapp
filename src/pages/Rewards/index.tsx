@@ -1,32 +1,29 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import styled from 'styled-components'
-import { Redirect, RouteComponentProps } from 'react-router-dom'
-import { SwapPoolTabs } from '../../components/NavigationTabs'
-import { PageWrapper } from '../Pools/styleds'
-import { Link } from 'react-router-dom'
-
-import { TYPE } from '../../theme'
-import { Box, Flex, Text } from 'rebass'
-import { RowBetween, RowFixed } from '../../components/Row'
-import { AutoColumn } from '../../components/Column'
-import { ReactComponent as ThreeBlurredCircles } from '../../assets/svg/three-blurred-circles.svg'
-
-import { ChevronDown } from 'react-feather'
-import { useToken } from '../../hooks/Tokens'
-
-import DoubleCurrencyLogo from '../../components/DoubleLogo'
-import { PairState, usePair } from '../../data/Reserves'
-
-import PairSearchModal from '../../components/SearchModal/PairSearchModal'
-import { ButtonSecondary } from '../../components/Button'
-import { useLiquidityMiningFeatureFlag } from '../../hooks/useLiquidityMiningFeatureFlag'
-
-import { PairsFilterType } from '../../components/Pool/ListFilter'
-
 import { Pair } from '@swapr/sdk'
-import { ResetFilterIcon, ResetFilterIconContainer } from '../Pools'
-import { useRouter } from '../../hooks/useRouter'
+
+import React, { useCallback, useEffect, useState } from 'react'
+import { unstable_batchedUpdates as batchedUpdates } from 'react-dom'
+import { ChevronDown } from 'react-feather'
+import { Link, Navigate, useParams } from 'react-router-dom'
+import { Box, Flex, Text } from 'rebass'
+import styled from 'styled-components'
+
+import { ReactComponent as ThreeBlurredCircles } from '../../assets/svg/three-blurred-circles.svg'
+import { ButtonSecondary } from '../../components/Button'
+import { AutoColumn } from '../../components/Column'
+import DoubleCurrencyLogo from '../../components/DoubleLogo'
 import { RewardsList } from '../../components/LiquidityMiningCampaigns/RewardsList'
+import { SwapPoolTabs } from '../../components/NavigationTabs'
+import { PairsFilterType } from '../../components/Pool/ListFilter'
+import { RowBetween, RowFixed } from '../../components/Row'
+import { PairSearchModal } from '../../components/SearchModal/PairSearchModal'
+import { PairState, usePair } from '../../data/Reserves'
+import { useToken } from '../../hooks/Tokens'
+import { useLiquidityMiningFeatureFlag } from '../../hooks/useLiquidityMiningFeatureFlag'
+import { useRouter } from '../../hooks/useRouter'
+import { TYPE } from '../../theme'
+import { unwrappedToken } from '../../utils/wrappedCurrency'
+import { PageWrapper } from '../PageWrapper'
+import { ResetFilterIcon, ResetFilterIconContainer } from '../Pools'
 
 const TitleRow = styled(RowBetween)`
   ${({ theme }) => theme.mediaWidth.upToSmall`
@@ -62,13 +59,15 @@ const ButtonRow = styled(RowFixed)`
     margin-bottom: 8px;
   `};
 `
+type CurrencySearchParams = {
+  currencyIdA: string
+  currencyIdB: string
+}
 
-export default function Rewards({
-  match: {
-    params: { currencyIdA, currencyIdB }
-  }
-}: RouteComponentProps<{ currencyIdA: string; currencyIdB: string }>) {
-  const router = useRouter()
+export default function Rewards() {
+  const { navigate, location, searchParams: search } = useRouter()
+  const { currencyIdA, currencyIdB } = useParams<CurrencySearchParams>()
+
   const token0 = useToken(currencyIdA)
   const token1 = useToken(currencyIdB)
 
@@ -90,10 +89,10 @@ export default function Rewards({
   }, [])
 
   useEffect(() => {
-    if (router.location.state?.showSwpr) {
+    if (typeof location.state === 'object' && location.state !== null && 'showSwpr' in location.state) {
       setAggregatedDataFilter(PairsFilterType.SWPR)
     }
-  }, [router])
+  }, [location])
 
   const handleModalClose = useCallback(() => {
     setOpenPairsModal(false)
@@ -101,34 +100,31 @@ export default function Rewards({
 
   const handlePairSelect = useCallback(
     pair => {
-      router.push({
-        pathname: `/rewards/${pair.token0.address}/${pair.token1.address}`
-      })
+      navigate(`/rewards/${pair.token0.address}/${pair.token1.address}`)
       setFilterPair(pair)
     },
-    [router]
+    [navigate]
   )
   const handleFilterTokenReset = useCallback(
     e => {
-      setAggregatedDataFilter(PairsFilterType.ALL)
-      router.push({
-        pathname: `/rewards`
+      batchedUpdates(() => {
+        setAggregatedDataFilter(PairsFilterType.ALL)
+        setFilterPair(null)
       })
-      setFilterPair(null)
+      navigate(`/rewards`)
       e.stopPropagation()
     },
-    [router]
+    [navigate]
   )
 
   if (token0 && (wrappedPair[0] === PairState.NOT_EXISTS || wrappedPair[0] === PairState.INVALID)) {
-    return <Redirect to="/rewards" />
+    return <Navigate to={{ pathname: '/rewards', search: search.toString() }} />
   }
 
   return (
     <>
       <PageWrapper>
-        <SwapPoolTabs active={'pool'} />
-
+        <SwapPoolTabs active="pool" />
         <AutoColumn gap="lg" justify="center">
           <AutoColumn gap="lg" style={{ width: '100%' }}>
             <TitleRow style={{ marginTop: '1rem' }} padding={'0'}>
@@ -167,9 +163,9 @@ export default function Rewards({
                     </Box>
                   )}
                   <Box mr="4px">
-                    <Text fontWeight="600" fontSize="16px" lineHeight="20px">
+                    <Text fontWeight="600" fontSize="16px" lineHeight="20px" data-testid="all-pairs">
                       {filterPair
-                        ? `${filterPair.token0.symbol}/${filterPair.token1.symbol}`
+                        ? `${unwrappedToken(filterPair.token0)?.symbol}/${unwrappedToken(filterPair.token1)?.symbol}`
                         : wrappedPair[0] === PairState.LOADING
                         ? 'LOADING'
                         : aggregatedDataFilter === PairsFilterType.MY
@@ -195,7 +191,15 @@ export default function Rewards({
               </Flex>
               <ButtonRow>
                 {liquidityMiningEnabled && (
-                  <ResponsiveButtonSecondary as={Link} padding="8px 14px" to="/liquidity-mining/create">
+                  <ResponsiveButtonSecondary
+                    as={Link}
+                    padding="8px 14px"
+                    to={{
+                      pathname: '/liquidity-mining/create',
+                      search: search.toString(),
+                    }}
+                    data-testid="create-campaign"
+                  >
                     <Text fontWeight={700} fontSize={12} lineHeight="15px">
                       CREATE CAMPAIGN
                     </Text>

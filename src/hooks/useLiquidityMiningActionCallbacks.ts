@@ -1,15 +1,15 @@
-import { TokenAmount } from '@swapr/sdk'
-import { useMemo } from 'react'
-import { useStakingRewardsDistributionContract } from './useContract'
 import { TransactionResponse } from '@ethersproject/providers'
-import { parseUnits } from 'ethers/lib/utils'
+import { parseUnits } from '@ethersproject/units'
+import { TokenAmount } from '@swapr/sdk'
+
+import { useMemo } from 'react'
+
+import { useStakingRewardsDistributionContract } from './useContract'
 
 /**
  * Returns functions that let a given account stake/withdraw/claim on a specific liquidity mining contract.
  */
-export function useLiquidityMiningActionCallbacks(
-  distributionContractAddress?: string
-): {
+export function useLiquidityMiningActionCallbacks(distributionContractAddress?: string): {
   stake: (amount: TokenAmount) => Promise<TransactionResponse>
   withdraw: (amount: TokenAmount) => Promise<TransactionResponse>
   claim: (amounts: TokenAmount[], recipient: string) => Promise<TransactionResponse>
@@ -29,7 +29,7 @@ export function useLiquidityMiningActionCallbacks(
           amounts.map(amount => amount.raw.toString()),
           recipient
         ),
-      exit: async recipient => distributionContract.exit(recipient)
+      exit: async recipient => distributionContract.exit(recipient),
     }
   }, [distributionContract])
 }

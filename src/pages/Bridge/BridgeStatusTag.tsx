@@ -1,13 +1,14 @@
 import React from 'react'
 import Skeleton from 'react-loading-skeleton'
+
 import { TagFailed, TagPending, TagSuccess, TagSuccessArrow } from '../../components/Tag'
 import { BridgeTransactionSummary } from '../../state/bridgeTransactions/types'
 
 export type BridgeStatusTagProps = Pick<BridgeTransactionSummary, 'status' | 'pendingReason'> & {
-  onCollect: () => void
+  handleTriggerCollect: () => void
 }
 
-export const BridgeStatusTag = ({ status, pendingReason, onCollect }: BridgeStatusTagProps) => {
+export const BridgeStatusTag = ({ status, pendingReason, handleTriggerCollect }: BridgeStatusTagProps) => {
   switch (status) {
     case 'confirmed':
       return <TagSuccess style={{ width: '67px' }}>Confirmed</TagSuccess>
@@ -15,7 +16,7 @@ export const BridgeStatusTag = ({ status, pendingReason, onCollect }: BridgeStat
       return <TagPending text={pendingReason} />
     case 'redeem':
       return (
-        <TagSuccessArrow style={{ width: '67px' }} onClick={onCollect}>
+        <TagSuccessArrow style={{ width: '67px' }} onClick={handleTriggerCollect}>
           Collect
         </TagSuccessArrow>
       )
@@ -25,6 +26,8 @@ export const BridgeStatusTag = ({ status, pendingReason, onCollect }: BridgeStat
       return <Skeleton width="67px" />
     case 'failed':
       return <TagFailed style={{ width: '67px' }}>Failed</TagFailed>
+    case 'cancelled':
+      return <TagFailed style={{ width: '67px' }}>Cancelled</TagFailed>
     default:
       return null
   }

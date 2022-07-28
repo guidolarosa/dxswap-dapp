@@ -1,25 +1,26 @@
-import { ChainId } from '@swapr/sdk'
-import React, { useContext } from 'react'
-import styled, { ThemeContext } from 'styled-components'
-import Modal from '../Modal'
-import { ExternalLink, TYPE } from '../../theme'
-import { Text } from 'rebass'
-import { CloseIcon, CustomLightSpinner } from '../../theme/components'
-import { RowBetween } from '../Row'
+import { ChainId, GnosisProtocolTrade, Trade } from '@swapr/sdk'
+
+import React from 'react'
 import { AlertTriangle, ArrowUpCircle } from 'react-feather'
+import { useTranslation } from 'react-i18next'
+import { Text } from 'rebass'
+import styled, { useTheme } from 'styled-components'
+
+import Circle from '../../assets/images/blue-loader.svg'
+import { useActiveWeb3React } from '../../hooks'
+import { CloseIcon, CustomLightSpinner, ExternalLink, TYPE } from '../../theme'
+import { getExplorerLink, getGnosisProtocolExplorerOrderLink } from '../../utils'
 import { ButtonPrimary } from '../Button'
 import { AutoColumn, ColumnCenter } from '../Column'
-import Circle from '../../assets/images/blue-loader.svg'
-
-import { getExplorerLink } from '../../utils'
-import { useActiveWeb3React } from '../../hooks'
+import Modal from '../Modal'
+import { RowBetween } from '../Row'
 
 const Wrapper = styled.div`
   width: 100%;
 `
 
 const Section = styled(AutoColumn)`
-  background-color: ${({ theme }) => theme.bg1And2};
+  background-color: ${({ theme }) => theme.bg2};
   padding: 24px;
 `
 
@@ -63,18 +64,38 @@ export function ConfirmationPendingContent({ onDismiss, pendingText }: { onDismi
 }
 
 function TransactionSubmittedContent({
+  trade,
   onDismiss,
   chainId,
-  hash
+  hash,
 }: {
+  trade?: Trade
   onDismiss: () => void
   hash: string | undefined
   chainId: ChainId
 }) {
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
+  const { t } = useTranslation()
+
+  const isGnosisProtocolTrade = trade instanceof GnosisProtocolTrade
+  const link =
+    chainId &&
+    hash &&
+    (isGnosisProtocolTrade
+      ? getGnosisProtocolExplorerOrderLink(chainId, hash)
+      : getExplorerLink(chainId, hash, 'transaction'))
+
+  const externalLinkText = `${isGnosisProtocolTrade ? t('viewOnCowExplorer') : t('viewOnBlockExplorer')}`
+  const explorerExternalLink = chainId && hash && (
+    <ExternalLink href={link as string}>
+      <Text fontWeight={500} fontSize="13px">
+        {externalLinkText}
+      </Text>
+    </ExternalLink>
+  )
 
   return (
-    <Wrapper>
+    <Wrapper data-testid="transaction-confirmed-modal">
       <Section>
         <RowBetween>
           <div />
@@ -87,14 +108,8 @@ function TransactionSubmittedContent({
           <Text fontWeight={500} fontSize="22px">
             Transaction Submitted
           </Text>
-          {chainId && hash && (
-            <ExternalLink href={getExplorerLink(chainId, hash, 'transaction')}>
-              <Text fontWeight={500} fontSize="13px">
-                View on block explorer
-              </Text>
-            </ExternalLink>
-          )}
-          <ButtonPrimary onClick={onDismiss} style={{ margin: '20px 0 0 0' }}>
+          {explorerExternalLink}
+          <ButtonPrimary onClick={onDismiss} style={{ margin: '20px 0 0 0' }} data-testid="close-modal-button">
             <Text fontWeight={600} fontSize="13px">
               Close
             </Text>
@@ -109,7 +124,7 @@ export function ConfirmationModalContent({
   title,
   bottomContent,
   onDismiss,
-  topContent
+  topContent,
 }: {
   title: string
   onDismiss: () => void
@@ -131,13 +146,13 @@ export function ConfirmationModalContent({
 }
 
 export function TransactionErrorContent({ message, onDismiss }: { message: string; onDismiss: () => void }) {
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
   return (
-    <Wrapper>
+    <Wrapper data-testid="transaction-error-modal">
       <Section>
         <RowBetween>
           <TYPE.mediumHeader color="text4">Error</TYPE.mediumHeader>
-          <CloseIcon onClick={onDismiss} />
+          <CloseIcon data-testid="close-icon" onClick={onDismiss} />
         </RowBetween>
         <AutoColumn style={{ marginTop: 20, padding: '2rem 0' }} gap="24px" justify="center">
           <AlertTriangle color={theme.red1} style={{ strokeWidth: 1.5 }} size={64} />
@@ -160,6 +175,7 @@ interface ConfirmationModalProps {
   content: () => React.ReactNode
   attemptingTxn: boolean
   pendingText: string
+  trade?: Trade
 }
 
 export default function TransactionConfirmationModal({
@@ -168,7 +184,8 @@ export default function TransactionConfirmationModal({
   attemptingTxn,
   hash,
   pendingText,
-  content
+  content,
+  trade,
 }: ConfirmationModalProps) {
   const { chainId } = useActiveWeb3React()
 
@@ -180,7 +197,7 @@ export default function TransactionConfirmationModal({
       {attemptingTxn ? (
         <ConfirmationPendingContent onDismiss={onDismiss} pendingText={pendingText} />
       ) : hash ? (
-        <TransactionSubmittedContent chainId={chainId} hash={hash} onDismiss={onDismiss} />
+        <TransactionSubmittedContent chainId={chainId} hash={hash} onDismiss={onDismiss} trade={trade} />
       ) : (
         content()
       )}

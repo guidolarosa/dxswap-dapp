@@ -1,16 +1,16 @@
-import { TokenAmount, Pair, Currency, RoutablePlatform } from '@swapr/sdk'
-import { useMemo } from 'react'
-import { abi as IDXswapPairABI } from '@swapr/core/build/IDXswapPair.json'
 import { Interface } from '@ethersproject/abi'
-import { useActiveWeb3React } from '../hooks'
+import { abi as IDXswapPairABI } from '@swapr/core/build/IDXswapPair.json'
+import { Currency, Pair, TokenAmount, UniswapV2RoutablePlatform } from '@swapr/sdk'
 
-import { useMultipleContractSingleData } from '../state/multicall/hooks'
-import { useFeesState } from '../state/fees/hooks'
-import { wrappedCurrency } from '../utils/wrappedCurrency'
-import { usePairContract, useTokenContract } from '../hooks/useContract'
-import { useToken } from '../hooks/Tokens'
-import { useSingleCallResult } from '../state/multicall/hooks'
 import { BigNumber } from 'ethers'
+import { useMemo } from 'react'
+
+import { useActiveWeb3React } from '../hooks'
+import { useToken } from '../hooks/Tokens'
+import { usePairContract, useTokenContract } from '../hooks/useContract'
+import { useFeesState } from '../state/fees/hooks'
+import { useMultipleContractSingleData, useSingleCallResult } from '../state/multicall/hooks'
+import { wrappedCurrency } from '../utils/wrappedCurrency'
 
 const PAIR_INTERFACE = new Interface(IDXswapPairABI)
 
@@ -18,12 +18,12 @@ export enum PairState {
   LOADING,
   NOT_EXISTS,
   EXISTS,
-  INVALID
+  INVALID,
 }
 
 export function usePairs(
   currencies: [Currency | undefined, Currency | undefined][],
-  platform: RoutablePlatform = RoutablePlatform.SWAPR
+  platform: UniswapV2RoutablePlatform = UniswapV2RoutablePlatform.SWAPR
 ): [PairState, Pair | null][] {
   const { chainId } = useActiveWeb3React()
 
@@ -31,7 +31,7 @@ export function usePairs(
     () =>
       currencies.map(([currencyA, currencyB]) => [
         wrappedCurrency(currencyA, chainId),
-        wrappedCurrency(currencyB, chainId)
+        wrappedCurrency(currencyB, chainId),
       ]),
     [chainId, currencies]
   )
@@ -39,7 +39,13 @@ export function usePairs(
   const pairAddresses = useMemo(
     () =>
       tokens.map(([tokenA, tokenB]) => {
-        return tokenA && tokenB && !tokenA.equals(tokenB) && chainId && platform.supportsChain(chainId)
+        return tokenA &&
+          tokenB &&
+          !tokenA.equals(tokenB) &&
+          chainId &&
+          platform.supportsChain(chainId) &&
+          platform.supportsChain(tokenA.chainId) &&
+          platform.supportsChain(tokenB.chainId)
           ? Pair.getAddress(tokenA, tokenB, platform)
           : undefined
       }),
@@ -62,7 +68,7 @@ export function usePairs(
       const { reserve0, reserve1 } = reserves
       const [token0, token1] = tokenA.sortsBefore(tokenB) ? [tokenA, tokenB] : [tokenB, tokenA]
       const swapFee = swapFees?.[Pair.getAddress(token0, token1, platform)]?.fee
-      if (!swapFee && platform === RoutablePlatform.SWAPR) return [PairState.LOADING, null]
+      if (!swapFee && platform === UniswapV2RoutablePlatform.SWAPR) return [PairState.LOADING, null]
       return [
         PairState.EXISTS,
         new Pair(
@@ -71,13 +77,17 @@ export function usePairs(
           swapFee || platform.defaultSwapFee,
           protocolFeeDenominator ? BigInt(protocolFeeDenominator) : BigInt(0),
           platform
-        )
+        ),
       ]
     })
   }, [protocolFeeDenominator, results, swapFees, tokens, platform])
 }
 
-export function usePair(tokenA?: Currency, tokenB?: Currency, platform?: RoutablePlatform): [PairState, Pair | null] {
+export function usePair(
+  tokenA?: Currency,
+  tokenB?: Currency,
+  platform?: UniswapV2RoutablePlatform
+): [PairState, Pair | null] {
   return usePairs([[tokenA, tokenB]], platform)[0]
 }
 

@@ -1,14 +1,15 @@
 import { BigNumber } from '@ethersproject/bignumber'
 import { AddressZero } from '@ethersproject/constants'
-import { TokenAmount, Token, ChainId, Percent, JSBI } from '@swapr/sdk'
+import { ChainId, JSBI, Percent, Token, TokenAmount } from '@swapr/sdk'
 
 import {
-  getExplorerLink,
-  calculateSlippageAmount,
-  isAddress,
-  shortenAddress,
+  basisPointsToPercent,
   calculateGasMargin,
-  basisPointsToPercent
+  calculateSlippageAmount,
+  getExplorerLink,
+  isAddress,
+  normalizeInputValue,
+  shortenAddress,
 } from '.'
 
 describe('utils', () => {
@@ -24,9 +25,6 @@ describe('utils', () => {
     })
     it('unrecognized chain id defaults to mainnet', () => {
       expect(getExplorerLink(2, 'abc', 'address')).toEqual('https://etherscan.io/address/abc')
-    })
-    it('ropsten', () => {
-      expect(getExplorerLink(3, 'abc', 'address')).toEqual('https://ropsten.etherscan.io/address/abc')
     })
     it('enum', () => {
       expect(getExplorerLink(ChainId.RINKEBY, 'abc', 'address')).toEqual('https://rinkeby.etherscan.io/address/abc')
@@ -97,6 +95,25 @@ describe('utils', () => {
       expect(basisPointsToPercent(100).equalTo(new Percent(JSBI.BigInt(1), JSBI.BigInt(100)))).toBeTruthy()
       expect(basisPointsToPercent(500).equalTo(new Percent(JSBI.BigInt(5), JSBI.BigInt(100)))).toBeTruthy()
       expect(basisPointsToPercent(50).equalTo(new Percent(JSBI.BigInt(5), JSBI.BigInt(1000)))).toBeTruthy()
+    })
+  })
+
+  describe('#normalizeInputValue function', () => {
+    it('should return correct value', () => {
+      //checks input value
+      expect(normalizeInputValue('0000.00000123')).toEqual('0.00000123')
+      expect(normalizeInputValue('.00000009')).toEqual('0.00000009')
+      expect(normalizeInputValue('0.000002')).toEqual('0.000002')
+      expect(normalizeInputValue('0020034')).toEqual('20034')
+      expect(normalizeInputValue('000.99')).toEqual('0.99')
+      expect(normalizeInputValue('00065')).toEqual('65')
+      expect(normalizeInputValue('200')).toEqual('200')
+      expect(normalizeInputValue('0000')).toEqual('0')
+      expect(normalizeInputValue('.')).toEqual('0.')
+
+      //transaction history value
+      expect(normalizeInputValue('0.1000002', true)).toEqual('0.1000002')
+      expect(normalizeInputValue('0.10000000000', true)).toEqual('0.1')
     })
   })
 })

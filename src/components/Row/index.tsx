@@ -1,5 +1,5 @@
-import styled from 'styled-components'
 import { Box } from 'rebass/styled-components'
+import styled from 'styled-components'
 
 const Row = styled(Box)<{
   align?: string
@@ -20,8 +20,9 @@ const Row = styled(Box)<{
   justify-content: ${({ justify }) => justify && justify};
 `
 
-export const RowBetween = styled(Row)`
+export const RowBetween = styled(Row)<{ gap?: number }>`
   justify-content: space-between;
+  ${({ gap }) => gap && `gap: ${gap}px;`}
 `
 
 export const RowFlat = styled.div`

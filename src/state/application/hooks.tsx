@@ -1,10 +1,11 @@
 import React, { useCallback } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import { toast } from 'react-toastify'
+
+import { TransactionPopup } from '../../components/Popups/TransactionPopup'
 import { useActiveWeb3React } from '../../hooks'
 import { AppDispatch, AppState } from '../index'
 import { ApplicationModal, MainnetGasPrice, PopupContent, setOpenModal } from './actions'
-import { toast } from 'react-toastify'
-import PopupItem from '../../components/Popups/PopupItem'
 
 export function useBlockNumber(): number | undefined {
   const { chainId } = useActiveWeb3React()
@@ -35,10 +36,6 @@ export function useOpenModal(modal: ApplicationModal): () => void {
 export function useCloseModals(): () => void {
   const dispatch = useDispatch<AppDispatch>()
   return useCallback(() => dispatch(setOpenModal(null)), [dispatch])
-}
-
-export function useWalletModalToggle(): () => void {
-  return useToggleModal(ApplicationModal.WALLET)
 }
 
 export function useToggleSettingsMenu(): () => void {
@@ -73,8 +70,12 @@ export function useEthereumOptionPopoverToggle(): () => void {
   return useToggleModal(ApplicationModal.ETHEREUM_OPTION)
 }
 
+export function useSimpleSettingsModal(): () => void {
+  return useToggleModal(ApplicationModal.SIMPLE_SETTINGS)
+}
+
 export function useAddPopup(): (content: PopupContent, autoClose?: number | false) => void {
   return useCallback((content: PopupContent, autoClose: number | false = 15000) => {
-    toast.info(<PopupItem content={content} />, { autoClose })
+    toast.info(<TransactionPopup {...content} />, { autoClose })
   }, [])
 }
