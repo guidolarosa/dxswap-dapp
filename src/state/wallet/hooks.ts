@@ -1,11 +1,13 @@
 import { Currency, CurrencyAmount, JSBI, Token, TokenAmount } from '@swapr/sdk'
+
 import { useMemo } from 'react'
-import ERC20_INTERFACE from '../../constants/abis/erc20'
-import { useAllTokens } from '../../hooks/Tokens'
+
+import { ERC20_INTERFACE } from '../../constants/abis/erc20'
 import { useActiveWeb3React } from '../../hooks'
+import { useAllTokens } from '../../hooks/Tokens'
+import { useMulticallContract } from '../../hooks/useContract'
 import { isAddress } from '../../utils'
 import { useMultipleContractSingleData, useSingleContractMultipleData } from '../multicall/hooks'
-import { useMulticallContract } from '../../hooks/useContract'
 
 export function useNativeCurrencyBalance(): CurrencyAmount | undefined {
   const { chainId, account } = useActiveWeb3React()
@@ -56,7 +58,7 @@ export function useTokenBalancesWithLoadingIndicator(
         }
         return memo
       }, {}),
-      anyLoading
+      anyLoading,
     ]
   }, [address, anyLoading, balances, validatedTokens])
 }
@@ -83,9 +85,10 @@ export function useCurrencyBalances(
   account?: string,
   currencies?: (Currency | undefined)[]
 ): (CurrencyAmount | undefined)[] {
-  const tokens = useMemo(() => currencies?.filter((currency): currency is Token => currency instanceof Token) ?? [], [
-    currencies
-  ])
+  const tokens = useMemo(
+    () => currencies?.filter((currency): currency is Token => currency instanceof Token) ?? [],
+    [currencies]
+  )
 
   const tokenBalances = useTokenBalances(account, tokens)
   const nativeCurrencyBalance = useNativeCurrencyBalance()

@@ -1,15 +1,15 @@
-import React, { useContext } from 'react'
-import { useActiveWeb3React } from '../../hooks'
-
-import { AutoColumn, ColumnCenter } from '../Column'
-import styled, { ThemeContext } from 'styled-components'
-import { RowBetween } from '../Row'
-import { TYPE, CloseIcon, CustomLightSpinner } from '../../theme'
+import React from 'react'
 import { ArrowUpCircle } from 'react-feather'
+import { useTranslation } from 'react-i18next'
+import styled, { useTheme } from 'styled-components'
 
 import Circle from '../../assets/images/blue-loader.svg'
-import { getExplorerLink } from '../../utils'
+import { useActiveWeb3React } from '../../hooks'
+import { CloseIcon, CustomLightSpinner, TYPE } from '../../theme'
 import { ExternalLink } from '../../theme/components'
+import { getExplorerLink } from '../../utils'
+import { AutoColumn, ColumnCenter } from '../Column'
+import { RowBetween } from '../Row'
 
 const ConfirmOrLoadingWrapper = styled.div`
   width: 100%;
@@ -41,14 +41,15 @@ export function LoadingView({ children, onDismiss }: { children: any; onDismiss:
 export function SubmittedView({
   children,
   onDismiss,
-  hash
+  hash,
 }: {
   children: any
   onDismiss: () => void
   hash: string | undefined
 }) {
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
   const { chainId } = useActiveWeb3React()
+  const { t } = useTranslation('common')
 
   return (
     <ConfirmOrLoadingWrapper>
@@ -63,7 +64,7 @@ export function SubmittedView({
         {children}
         {chainId && hash && (
           <ExternalLink href={getExplorerLink(chainId, hash, 'transaction')} style={{ marginLeft: '4px' }}>
-            <TYPE.subHeader>View transaction on block explorer</TYPE.subHeader>
+            <TYPE.subHeader>{t('viewTransactionOnBlockExplorer')}</TYPE.subHeader>
           </ExternalLink>
         )}
       </AutoColumn>

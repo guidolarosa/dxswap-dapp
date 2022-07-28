@@ -1,20 +1,23 @@
-import Decimal from 'decimal.js-light'
 import {
+  ChainId,
+  Currency,
   CurrencyAmount,
+  KpiToken,
   LiquidityMiningCampaign,
   Pair,
   Price,
-  USD,
-  ChainId,
-  Currency,
-  Token,
   PricedToken,
   PricedTokenAmount,
+  SingleSidedLiquidityMiningCampaign,
+  Token,
   TokenAmount,
-  KpiToken,
-  SingleSidedLiquidityMiningCampaign
+  USD,
 } from '@swapr/sdk'
+
+import Decimal from 'decimal.js-light'
 import { getAddress, parseUnits } from 'ethers/lib/utils'
+import { DateTime, Duration } from 'luxon'
+
 import { SubgraphLiquidityMiningCampaign, SubgraphSingleSidedStakingCampaign } from '../apollo'
 import { ZERO_USD } from '../constants'
 import { getLpTokenPrice } from './prices'
@@ -61,16 +64,16 @@ export function tokenToPricedTokenAmount(
   nativeCurrency: Currency,
   chainId: ChainId
 ): PricedTokenAmount {
-  const price = new Price(
-    token,
-    nativeCurrency,
-    parseUnits('1', nativeCurrency.decimals).toString(),
-    parseUnits(
+  const price = new Price({
+    quoteCurrency: token,
+    baseCurrency: nativeCurrency,
+    denominator: parseUnits('1', nativeCurrency.decimals).toString(),
+    numerator: parseUnits(
       //chekc urself before u wreck urself
       new Decimal(campaign.token.derivedNativeCurrency).toFixed(nativeCurrency.decimals),
       nativeCurrency.decimals
-    ).toString()
-  )
+    ).toString(),
+  })
   const pricedRewardToken = new PricedToken(
     chainId,
     getAddress(token.address),
@@ -101,15 +104,15 @@ export function toSingleSidedStakeCampaign(
       reward.token.name
     )
 
-    const rewardTokenPriceNativeCurrency = new Price(
-      rewardToken,
-      nativeCurrency,
-      parseUnits('1', nativeCurrency.decimals).toString(),
-      parseUnits(
+    const rewardTokenPriceNativeCurrency = new Price({
+      baseCurrency: rewardToken,
+      quoteCurrency: nativeCurrency,
+      denominator: parseUnits('1', nativeCurrency.decimals).toString(),
+      numerator: parseUnits(
         new Decimal(reward.token.derivedNativeCurrency).toFixed(nativeCurrency.decimals),
         nativeCurrency.decimals
-      ).toString()
-    )
+      ).toString(),
+    })
     const pricedRewardToken = new PricedToken(
       chainId,
       getAddress(rewardToken.address),
@@ -124,12 +127,15 @@ export function toSingleSidedStakeCampaign(
     )
   })
 
-  const derivedNative = new Price(
-    stakeToken,
-    nativeCurrency,
-    parseUnits('1', nativeCurrency.decimals).toString(),
-    parseUnits(new Decimal(derivedNativeCurrency).toFixed(nativeCurrency.decimals), nativeCurrency.decimals).toString()
-  )
+  const derivedNative = new Price({
+    baseCurrency: stakeToken,
+    quoteCurrency: nativeCurrency,
+    denominator: parseUnits('1', nativeCurrency.decimals).toString(),
+    numerator: parseUnits(
+      new Decimal(derivedNativeCurrency).toFixed(nativeCurrency.decimals),
+      nativeCurrency.decimals
+    ).toString(),
+  })
 
   const stakedPricedToken = new PricedToken(
     chainId,
@@ -173,20 +179,20 @@ export function toLiquidityMiningCampaign(
       reward.token.name
     )
     const kpiToken = kpiTokens.find(kpiToken => kpiToken.address.toLowerCase() === reward.token.address.toLowerCase())
-    if (!!kpiToken)
+    if (kpiToken)
       return new PricedTokenAmount(
         kpiToken,
         parseUnits(new Decimal(reward.amount).toFixed(rewardToken.decimals), rewardToken.decimals).toString()
       )
-    const rewardTokenPriceNativeCurrency = new Price(
-      rewardToken,
-      nativeCurrency,
-      parseUnits('1', nativeCurrency.decimals).toString(),
-      parseUnits(
+    const rewardTokenPriceNativeCurrency = new Price({
+      baseCurrency: rewardToken,
+      quoteCurrency: nativeCurrency,
+      denominator: parseUnits('1', nativeCurrency.decimals).toString(),
+      numerator: parseUnits(
         new Decimal(reward.token.derivedNativeCurrency).toFixed(nativeCurrency.decimals),
         nativeCurrency.decimals
-      ).toString()
-    )
+      ).toString(),
+    })
     const pricedRewardToken = new PricedToken(
       chainId,
       getAddress(rewardToken.address),
@@ -219,19 +225,19 @@ export function toLiquidityMiningCampaign(
     stakedPricedToken,
     parseUnits(campaign.stakedAmount, stakedPricedToken.decimals).toString()
   )
-  return new LiquidityMiningCampaign(
-    campaign.startsAt,
-    campaign.endsAt,
+  return new LiquidityMiningCampaign({
+    startsAt: campaign.startsAt,
+    endsAt: campaign.endsAt,
     targetedPair,
     rewards,
     staked,
-    campaign.locked,
-    new TokenAmount(
+    locked: campaign.locked,
+    stakingCap: new TokenAmount(
       targetedPair.liquidityToken,
       parseUnits(campaign.stakingCap, targetedPair.liquidityToken.decimals).toString()
     ),
-    getAddress(campaign.address)
-  )
+    address: getAddress(campaign.address),
+  })
 }
 
 export function getStakedAmountUSD(campaign: CurrencyAmount, nativeCurrencyUSDPrice: Price): CurrencyAmount {
@@ -239,3 +245,137 @@ export function getStakedAmountUSD(campaign: CurrencyAmount, nativeCurrencyUSDPr
     parseUnits(campaign.multiply(nativeCurrencyUSDPrice).toFixed(USD.decimals), USD.decimals).toString()
   )
 }
+
+interface SubgraphToken {
+  address: string
+  symbol: string
+  name: string
+  decimals: string
+}
+
+export interface SubgraphPair {
+  address: string
+  reserve0: string
+  reserve1: string
+  reserveNativeCurrency: string
+  reserveUSD: string
+  totalSupply: string
+  token0: SubgraphToken
+  token1: SubgraphToken
+  liquidityMiningCampaigns: SubgraphLiquidityMiningCampaign[]
+}
+
+interface TokenAmountParams {
+  token: SubgraphToken
+  tokensInCurrentChain: { [address: string]: { token: Token } }
+  chainId: ChainId
+  reserve: string
+}
+
+export const getTokenAmount = ({ token, tokensInCurrentChain, chainId, reserve }: TokenAmountParams) => {
+  const tokenChecksummedAddress = getAddress(token.address)
+  const tokenA =
+    tokensInCurrentChain && tokensInCurrentChain[tokenChecksummedAddress]?.token
+      ? tokensInCurrentChain[tokenChecksummedAddress].token
+      : new Token(chainId, tokenChecksummedAddress, parseInt(token.decimals, 10), token.symbol, token.name)
+  return new TokenAmount(tokenA, parseUnits(reserve, token.decimals).toString())
+}
+
+interface PairWithLiquidityMiningCampaignParams {
+  rawPair: SubgraphPair
+  tokensInCurrentChain: { [address: string]: { token: Token } }
+  chainId: ChainId
+  nativeCurrency: Currency
+  kpiTokens: KpiToken[]
+}
+
+export const getPairWithLiquidityMiningCampaign = ({
+  rawPair,
+  tokensInCurrentChain,
+  chainId,
+  kpiTokens,
+  nativeCurrency,
+}: PairWithLiquidityMiningCampaignParams) => {
+  const { reserveNativeCurrency, totalSupply, token0, token1, reserve0, reserve1, liquidityMiningCampaigns } = rawPair
+
+  const tokenAmountA = getTokenAmount({ token: token0, tokensInCurrentChain, chainId, reserve: reserve0 })
+  const tokenAmountB = getTokenAmount({ token: token1, tokensInCurrentChain, chainId, reserve: reserve1 })
+
+  const pair = new Pair(tokenAmountA, tokenAmountB)
+
+  const campaigns = liquidityMiningCampaigns.map(campaign => {
+    return toLiquidityMiningCampaign(
+      chainId,
+      pair,
+      totalSupply,
+      reserveNativeCurrency,
+      kpiTokens,
+      campaign,
+      nativeCurrency
+    )
+  })
+  pair.liquidityMiningCampaigns = campaigns
+
+  return pair
+}
+
+export const getLowerTimeLimit = () =>
+  Math.floor(
+    DateTime.utc()
+      .minus(Duration.fromObject({ days: 150 }))
+      .toSeconds()
+  )
+
+export const getRewardTokenAddressFromPair = (pair: SubgraphPair) =>
+  pair.liquidityMiningCampaigns.flatMap(campaign => campaign.rewards.map(reward => reward.token.address.toLowerCase()))
+
+export interface MiningCampaign {
+  campaign: LiquidityMiningCampaign | SingleSidedLiquidityMiningCampaign
+  staked: boolean
+  containsKpiToken: boolean
+}
+
+export const sortActiveCampaigns = (activeCampaigns: MiningCampaign[]) =>
+  activeCampaigns.sort((a, b) => {
+    if (a.campaign.ended && !b.campaign.ended) return -1
+    if (!a.campaign.ended && b.campaign.ended) return 1
+
+    if (a.staked && !b.staked) return -1
+    if (!a.staked && b.staked) return 1
+
+    if (
+      a.campaign instanceof SingleSidedLiquidityMiningCampaign &&
+      !(b.campaign instanceof SingleSidedLiquidityMiningCampaign)
+    )
+      return -1
+
+    if (
+      !(a.campaign instanceof SingleSidedLiquidityMiningCampaign) &&
+      b.campaign instanceof SingleSidedLiquidityMiningCampaign
+    )
+      return 1
+
+    // Active above upcoming
+    if (a.campaign.currentlyActive && !b.campaign.currentlyActive) return -1
+    if (!a.campaign.currentlyActive && b.campaign.currentlyActive) return 1
+
+    // TV
+    if (a.campaign.staked.nativeCurrencyAmount.greaterThan(b.campaign.staked.nativeCurrencyAmount)) return -1
+    if (a.campaign.staked.nativeCurrencyAmount.lessThan(b.campaign.staked.nativeCurrencyAmount)) return 1
+
+    if (a.campaign.apy > b.campaign.apy) return -1
+    if (a.campaign.apy < b.campaign.apy) return 1
+
+    return 0
+  })
+
+export const sortExpiredCampaigns = (expiredCampaigns: MiningCampaign[]) =>
+  expiredCampaigns.sort((a, b) => {
+    if (a.campaign.endsAt > b.campaign.endsAt) return -1
+    if (a.campaign.endsAt < b.campaign.endsAt) return 1
+
+    if (a.campaign.staked.nativeCurrencyAmount.greaterThan(b.campaign.staked.nativeCurrencyAmount)) return -1
+    if (a.campaign.staked.nativeCurrencyAmount.lessThan(b.campaign.staked.nativeCurrencyAmount)) return 1
+
+    return 0
+  })

@@ -1,10 +1,11 @@
-import React from 'react'
-import styled, { css } from 'styled-components'
-import { animated, useTransition, config } from '@react-spring/web'
-import { DialogOverlay, DialogContent } from '@reach/dialog'
-import { isMobile } from 'react-device-detect'
 import '@reach/dialog/styles.css'
+
+import { DialogContent, DialogOverlay } from '@reach/dialog'
+import { animated, config, useTransition } from '@react-spring/web'
 import { transparentize } from 'polished'
+import React from 'react'
+import { isMobile } from 'react-device-detect'
+import styled, { css } from 'styled-components'
 
 const AnimatedDialogOverlay = animated(DialogOverlay)
 const StyledDialogOverlay = styled(AnimatedDialogOverlay)`
@@ -26,7 +27,7 @@ const AnimatedDialogContent = animated(DialogContent)
 const StyledDialogContent = styled(({ minHeight, maxHeight, maxWidth, mobile, isOpen, ...rest }) => (
   <AnimatedDialogContent {...rest} />
 )).attrs({
-  'aria-label': 'dialog'
+  'aria-label': 'dialog',
 })`
   overflow-y: ${({ mobile }) => (mobile ? 'scroll' : 'hidden')};
 
@@ -60,14 +61,16 @@ const StyledDialogContent = styled(({ minHeight, maxHeight, maxWidth, mobile, is
     `}
     ${({ theme, mobile }) => theme.mediaWidth.upToSmall`
       width:  100vw;
-      ${mobile &&
+      ${
+        mobile &&
         css`
           width: 100vw;
           border-radius: 20px;
           border-bottom-left-radius: 0;
           border-bottom-right-radius: 0;
           margin-bottom: 72px;
-        `}
+        `
+      }
     `}
   }
 `
@@ -91,13 +94,13 @@ export default function Modal({
   maxWidth = 460,
   initialFocusRef,
   children,
-  className
+  className,
 }: ModalProps) {
   const transition = useTransition(isOpen, {
     config: { ...config.default, duration: 200 },
     from: { opacity: 0 },
     enter: { opacity: 1 },
-    leave: { opacity: 0 }
+    leave: { opacity: 0 },
   })
 
   return (

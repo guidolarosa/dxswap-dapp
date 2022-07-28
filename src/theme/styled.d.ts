@@ -1,4 +1,4 @@
-import { DefaultTheme, FlattenSimpleInterpolation, ThemedCssFunction } from 'styled-components'
+import { FlattenSimpleInterpolation, ThemedCssFunction } from 'styled-components'
 
 export type Color = string
 export interface Colors {
@@ -12,7 +12,7 @@ export interface Colors {
   text3: Color
   text4: Color
   text5: Color
-
+  text6: Color
   // backgrounds / greys
   bg1: Color
   bg1And2: Color
@@ -20,6 +20,9 @@ export interface Colors {
   bg3: Color
   bg4: Color
   bg5: Color
+  bg6: Color
+  bg7: Color
+  bg8: Color
 
   modalBG: Color
   advancedBG: Color
@@ -47,7 +50,9 @@ export interface Colors {
   yellow1: Color
   yellow2: Color
   blue1: Color
+  dark4: Color
 
+  gray1: Color
   // new UI refactor colors, taken from ZeroHeight
   mainPurple: Color
   purpleBase: Color
@@ -56,6 +61,9 @@ export interface Colors {
   purple3: Color
   purple4: Color
   purple5: Color
+  lightPurple: Color
+  lightPurple2: Color
+  purple6: Color
   boxShadow: Color
 
   // darkest // dark1.1

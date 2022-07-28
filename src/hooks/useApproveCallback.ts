@@ -1,21 +1,37 @@
-import { MaxUint256 } from '@ethersproject/constants'
+import { AddressZero, MaxUint256 } from '@ethersproject/constants'
 import { TransactionResponse } from '@ethersproject/providers'
-import { Trade, TokenAmount, CurrencyAmount, ChainId } from '@swapr/sdk'
+import {
+  ChainId,
+  Currency,
+  CurrencyAmount,
+  CurveTrade,
+  GnosisProtocolTrade,
+  TokenAmount,
+  Trade,
+  UniswapTrade,
+  UniswapV2RoutablePlatform,
+  UniswapV2Trade,
+  ZeroXTrade,
+} from '@swapr/sdk'
+import { wrappedAmount } from '@swapr/sdk/dist/entities/trades/utils'
+
 import { useCallback, useMemo } from 'react'
+
 import { useTokenAllowance } from '../data/Allowances'
-import { Field } from '../state/swap/actions'
-import { useTransactionAdder, useHasPendingApproval } from '../state/transactions/hooks'
-import { computeSlippageAdjustedAmounts } from '../utils/prices'
+import { Field } from '../state/swap/types'
+import { useHasPendingApproval, useTransactionAdder } from '../state/transactions/hooks'
 import { calculateGasMargin } from '../utils'
+import { computeSlippageAdjustedAmounts } from '../utils/prices'
 import { useTokenContract } from './useContract'
-import { useActiveWeb3React } from './index'
 import { useNativeCurrency } from './useNativeCurrency'
+
+import { useActiveWeb3React } from './index'
 
 export enum ApprovalState {
   UNKNOWN,
   NOT_APPROVED,
   PENDING,
-  APPROVED
+  APPROVED,
 }
 
 // returns a variable indicating the state of the approval and a function which approves if necessary or early returns
@@ -81,12 +97,12 @@ export function useApproveCallback(
 
     return tokenContract
       .approve(spender, useExact ? amountToApprove.raw.toString() : MaxUint256, {
-        gasLimit: calculateGasMargin(estimatedGas)
+        gasLimit: calculateGasMargin(estimatedGas),
       })
       .then((response: TransactionResponse) => {
         addTransaction(response, {
           summary: 'Approve ' + amountToApprove.currency.symbol,
-          approval: { tokenAddress: token.address, spender: spender }
+          approval: { tokenAddress: token.address, spender: spender },
         })
       })
       .catch((error: Error) => {
@@ -99,11 +115,39 @@ export function useApproveCallback(
 }
 
 // wraps useApproveCallback in the context of a swap
-export function useApproveCallbackFromTrade(trade?: Trade, allowedSlippage = 0) {
+export function useApproveCallbackFromTrade(trade?: Trade /* allowedSlippage = 0 */) {
   const { chainId } = useActiveWeb3React()
-  const amountToApprove = useMemo(
-    () => (trade ? computeSlippageAdjustedAmounts(trade, allowedSlippage)[Field.INPUT] : undefined),
-    [trade, allowedSlippage]
-  )
-  return useApproveCallback(amountToApprove, trade?.platform.routerAddress[chainId || ChainId.MAINNET])
+
+  const amountToApprove = useMemo(() => {
+    if (trade) {
+      // For GPv2 trades, make sure to wrap the currency amount if
+      // the trade input currency is the native one
+      if (trade instanceof GnosisProtocolTrade && Currency.isNative(trade.inputAmount.currency)) {
+        return wrappedAmount(trade.inputAmount, trade.chainId)
+      }
+      // For any other case, return the default
+      return computeSlippageAdjustedAmounts(trade)[Field.INPUT]
+    }
+
+    return undefined
+  }, [trade])
+
+  // Find the approve address for the trade
+  let approveAddress = AddressZero
+  if (
+    trade instanceof CurveTrade ||
+    trade instanceof GnosisProtocolTrade ||
+    trade instanceof UniswapTrade ||
+    trade instanceof ZeroXTrade
+  ) {
+    approveAddress = trade.approveAddress
+  } else if (trade instanceof UniswapV2Trade) {
+    /**
+     * @todo use approveAddress property in next version
+     */
+    const routerAddressList = trade.platform as UniswapV2RoutablePlatform
+    approveAddress = routerAddressList.routerAddress[chainId as ChainId] as string
+  }
+
+  return useApproveCallback(amountToApprove, approveAddress)
 }

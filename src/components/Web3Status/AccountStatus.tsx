@@ -1,31 +1,33 @@
 import { ChainId } from '@swapr/sdk'
+
+import { AbstractConnector } from '@web3-react/abstract-connector'
+import { InjectedConnector } from '@web3-react/injected-connector'
 import React, { useEffect, useState } from 'react'
 import { Text } from 'rebass'
 import styled from 'styled-components'
+
+import PolygonMaticLogo from '../../assets/images/polygon-matic-logo.svg'
+import ArbitrumLogo from '../../assets/svg/arbitrum-one-logo.svg'
+import EthereumLogo from '../../assets/svg/ethereum-logo.svg'
+import GnosisLogo from '../../assets/svg/gnosis-chain-logo.svg'
+import { CustomNetworkConnector } from '../../connectors/CustomNetworkConnector'
+import { CustomWalletLinkConnector } from '../../connectors/CustomWalletLinkConnector'
+import { ENSAvatarData } from '../../hooks/useENSAvatar'
+import { ApplicationModal } from '../../state/application/actions'
 import { useNetworkSwitcherPopoverToggle } from '../../state/application/hooks'
-import { TYPE } from '../../theme'
 import { shortenAddress } from '../../utils'
+import { TriangleIcon } from '../Icons'
 import Loader from '../Loader'
 import NetworkSwitcherPopover from '../NetworkSwitcherPopover'
 import { RowBetween } from '../Row'
-import EthereumLogo from '../../assets/svg/ethereum-logo.svg'
-import GnosisLogo from '../../assets/svg/gnosis-chain-logo.svg'
-import ArbitrumLogo from '../../assets/svg/arbitrum-one-logo.svg'
-import { TriangleIcon } from '../Icons'
-import { AbstractConnector } from '@web3-react/abstract-connector'
-import { CustomNetworkConnector } from '../../connectors/CustomNetworkConnector'
-import { InjectedConnector } from '@web3-react/injected-connector'
-import { ApplicationModal } from '../../state/application/actions'
-import { ChainLabel } from '../../constants'
-import { ENSAvatarData } from '../../hooks/useENSAvatar'
-import { CustomWalletLinkConnector } from '../../connectors/CustomWalletLinkConnector'
 
 const ChainLogo: any = {
   [ChainId.MAINNET]: EthereumLogo,
   [ChainId.RINKEBY]: EthereumLogo,
   [ChainId.ARBITRUM_ONE]: ArbitrumLogo,
   [ChainId.ARBITRUM_RINKEBY]: ArbitrumLogo,
-  [ChainId.XDAI]: GnosisLogo
+  [ChainId.XDAI]: GnosisLogo,
+  [ChainId.POLYGON]: PolygonMaticLogo,
 }
 
 const View = styled.div`
@@ -59,7 +61,11 @@ const Web3StatusConnected = styled.button<{ pending?: boolean }>`
   align-items: center;
 `
 
-const Web3StatusNetwork = styled.button<{ pendingTransactions?: boolean; isConnected: boolean; clickable: boolean }>`
+const Web3StatusNetwork = styled.button<{
+  pendingTransactions?: boolean
+  isConnected: boolean
+  clickable: boolean
+}>`
   display: flex;
   align-items: center;
   height: 26px;
@@ -85,16 +91,11 @@ const IconWrapper = styled.div<{ size?: number | null }>`
   & > img,
   span {
     height: ${({ size }) => (size ? size + 'px' : '30px')};
+    width: ${({ size }) => (size ? size + 'px' : '30px')};
   }
 
   ${({ theme }) => theme.mediaWidth.upToMedium`
     align-items: center;
-  `};
-`
-
-const NetworkName = styled.div`
-  ${({ theme }) => theme.mediaWidth.upToMedium`
-    display: none;
   `};
 `
 
@@ -124,7 +125,7 @@ const Avatar = styled.div<StyledAvatarProps>(props => ({
   marginLeft: -14,
   backgroundColor: props.theme.bg1,
   backgroundSize: 'cover',
-  backgroundImage: `url(${props.url})`
+  backgroundImage: `url(${props.url})`,
 }))
 
 interface AccountStatusProps {
@@ -144,7 +145,7 @@ export function AccountStatus({
   connector,
   networkConnectorChainId,
   onAddressClick,
-  avatar
+  avatar,
 }: AccountStatusProps) {
   const hasPendingTransactions = !!pendingTransactions.length
   const toggleNetworkSwitcherPopover = useNetworkSwitcherPopoverToggle()
@@ -154,7 +155,8 @@ export function AccountStatus({
     setNetworkSwitchingActive(
       connector instanceof CustomNetworkConnector ||
         connector instanceof InjectedConnector ||
-        connector instanceof CustomWalletLinkConnector
+        connector instanceof CustomWalletLinkConnector ||
+        connector instanceof AbstractConnector
     )
   }, [connector])
 
@@ -173,8 +175,8 @@ export function AccountStatus({
             </RowBetween>
           ) : ENSName ? (
             <>
-              {avatar && <Avatar url={avatar.image} />}
-              <>{ENSName}</>
+              {avatar?.image && <Avatar url={avatar.image} />}
+              <p>{ENSName}</p>
             </>
           ) : (
             <>
@@ -184,7 +186,7 @@ export function AccountStatus({
           )}
         </Web3StatusConnected>
       )}
-      <NetworkSwitcherPopover modal={ApplicationModal.NETWORK_SWITCHER}>
+      <NetworkSwitcherPopover modal={ApplicationModal.NETWORK_SWITCHER} placement="bottom-end">
         <Web3StatusNetwork
           clickable={networkSwitchingActive}
           onClick={networkSwitchingActive ? toggleNetworkSwitcherPopover : undefined}
@@ -193,13 +195,6 @@ export function AccountStatus({
           <IconWrapper size={20}>
             <img src={ChainLogo[networkConnectorChainId]} alt="chain logo" />
           </IconWrapper>
-          {account && (
-            <NetworkName>
-              <TYPE.white ml="8px" fontWeight={700} fontSize="12px">
-                {ChainLabel[networkConnectorChainId]}
-              </TYPE.white>
-            </NetworkName>
-          )}
           {networkSwitchingActive && <TriangleIcon />}
         </Web3StatusNetwork>
       </NetworkSwitcherPopover>

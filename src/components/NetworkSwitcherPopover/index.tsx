@@ -1,12 +1,14 @@
-import React, { ReactNode, useEffect } from 'react'
 import { ChainId } from '@swapr/sdk'
+
 import { Placement } from '@popperjs/core'
-import { useActiveWeb3React } from '../../hooks'
+import React, { ReactNode } from 'react'
+
+import { useActiveWeb3React, useUnsupportedChainIdError } from '../../hooks'
 import { useNetworkSwitch } from '../../hooks/useNetworkSwitch'
 import { ApplicationModal } from '../../state/application/actions'
-import { useModalOpen, useCloseModals } from '../../state/application/hooks'
-import { NetworkSwitcher, networkOptionsPreset } from '../NetworkSwitcher'
+import { useCloseModals, useModalOpen } from '../../state/application/hooks'
 import { createNetworksList } from '../../utils/networksList'
+import { networkOptionsPreset, NetworkSwitcher, NetworkSwitcherTags } from '../NetworkSwitcher'
 
 interface NetworkSwitcherPopoverProps {
   children: ReactNode
@@ -18,19 +20,16 @@ export default function NetworkSwitcherPopover({ children, modal, placement }: N
   const closeModals = useCloseModals()
   const { connector, chainId: activeChainId, account } = useActiveWeb3React()
   const networkSwitcherPopoverOpen = useModalOpen(modal)
+  const unsupportedChainIdError = useUnsupportedChainIdError()
 
   const { selectNetwork } = useNetworkSwitch({
-    onSelectNetworkCallback: closeModals
+    onSelectNetworkCallback: closeModals,
   })
 
-  useEffect(() => {
-    if (activeChainId === ChainId.MAINNET) {
-      closeModals()
-    }
-  }, [activeChainId, closeModals])
-
   const isNetworkDisabled = (chainId: ChainId) => {
-    return connector?.supportedChainIds?.indexOf(chainId) === -1 || activeChainId === chainId
+    return (
+      connector?.supportedChainIds?.indexOf(chainId) === -1 || (!unsupportedChainIdError && activeChainId === chainId)
+    )
   }
 
   const networkList = createNetworksList({
@@ -38,8 +37,9 @@ export default function NetworkSwitcherPopover({ children, modal, placement }: N
     onNetworkChange: selectNetwork,
     isNetworkDisabled,
     selectedNetworkChainId: activeChainId ? activeChainId : -1,
-    activeChainId: !!account ? activeChainId : -1,
-    ignoreTags: ['coming soon']
+    activeChainId: account ? activeChainId : -1,
+    ignoreTags: [NetworkSwitcherTags.COMING_SOON],
+    showTestnets: false,
   })
 
   return (
@@ -48,7 +48,6 @@ export default function NetworkSwitcherPopover({ children, modal, placement }: N
       show={networkSwitcherPopoverOpen}
       onOuterClick={closeModals}
       placement={placement}
-      showWrongNetworkPopover
     >
       {children}
     </NetworkSwitcher>

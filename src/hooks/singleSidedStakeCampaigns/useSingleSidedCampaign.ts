@@ -1,17 +1,15 @@
+import { SingleSidedLiquidityMiningCampaign, Token } from '@swapr/sdk'
+
 import { gql, useQuery } from '@apollo/client'
-
-import { Token, SingleSidedLiquidityMiningCampaign } from '@swapr/sdk'
-
 import { useMemo } from 'react'
 
 import { useActiveWeb3React } from '..'
 import { SubgraphSingleSidedStakingCampaign } from '../../apollo'
-
 import { toSingleSidedStakeCampaign } from '../../utils/liquidityMining'
 import { useNativeCurrency } from '../useNativeCurrency'
 
 const QUERY = gql`
-  query($campaignAddress: ID) {
+  query ($campaignAddress: ID) {
     singleSidedStakingCampaign(id: $campaignAddress) {
       id
       owner
@@ -43,9 +41,7 @@ const QUERY = gql`
   }
 `
 
-export function useSingleSidedCampaign(
-  campaginAddress: string
-): {
+export function useSingleSidedCampaign(campaginAddress: string): {
   loading: boolean
   singleSidedStakingCampaign: SingleSidedLiquidityMiningCampaign | undefined
 } {
@@ -56,8 +52,8 @@ export function useSingleSidedCampaign(
     singleSidedStakingCampaign: SubgraphSingleSidedStakingCampaign
   }>(QUERY, {
     variables: {
-      campaignAddress: campaginAddress.toLowerCase()
-    }
+      campaignAddress: campaginAddress.toLowerCase(),
+    },
   })
   return useMemo(() => {
     if (loading || chainId === undefined) {
@@ -86,7 +82,7 @@ export function useSingleSidedCampaign(
 
     return {
       loading: false,
-      singleSidedStakingCampaign: singleSidedStakeCampaign
+      singleSidedStakingCampaign: singleSidedStakeCampaign,
     }
   }, [data, loading, error, chainId, nativeCurrency])
 }

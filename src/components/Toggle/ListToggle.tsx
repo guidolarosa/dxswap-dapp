@@ -1,5 +1,6 @@
 import React from 'react'
 import styled from 'styled-components/macro'
+
 import { TYPE } from '../../theme'
 
 const Wrapper = styled.button`
@@ -39,7 +40,7 @@ export interface ToggleProps {
 
 export default function ListToggle({ id, isActive, bgColor, toggle }: ToggleProps) {
   return (
-    <Wrapper id={id} onClick={toggle}>
+    <Wrapper id={id} onClick={toggle} data-testid="list-toggle">
       {isActive && (
         <StatusText fontWeight="600" margin="0 6px" isActive={true}>
           ON

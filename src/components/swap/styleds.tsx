@@ -1,8 +1,10 @@
 import { transparentize } from 'polished'
 import React from 'react'
 import { AlertTriangle } from 'react-feather'
-import styled from 'styled-components'
 import { Text } from 'rebass'
+import styled from 'styled-components'
+
+import { breakpoints } from '../../utils/theme'
 import { AutoColumn } from '../Column'
 
 export const Wrapper = styled.div`
@@ -23,16 +25,21 @@ export const ArrowWrapper = styled.div<{ clickable: boolean }>`
 
 export const SwitchTokensAmountsContainer = styled.div`
   background-color: ${props => props.theme.bg1And2};
-  width: 37px;
-  height: 37px;
+  width: 51px;
+  height: 51px;
   position: absolute;
   left: 50%;
-  top: -16px;
+  top: -26px;
   transform: translateX(-50%);
   z-index: 2;
   border-radius: 50%;
   border: solid 5px ${props => props.theme.dark1};
   cursor: pointer;
+  @media screen and (max-width: ${breakpoints.md}) {
+    width: 42px;
+    height: 42px;
+    top: -20px;
+  }
 `
 
 export const SectionBreak = styled.div`
@@ -91,15 +98,17 @@ export const Dots = styled.span`
   }
 `
 
-const SwapCallbackErrorInner = styled.div`
+const SwapCallbackErrorInner = styled.div<{
+  isSpaceAtTop?: boolean
+}>`
   background-color: ${({ theme }) => transparentize(0.9, theme.red1)};
   border-radius: 1rem;
   display: flex;
   align-items: center;
   font-size: 0.825rem;
   width: 100%;
-  padding: 3rem 1.25rem 1rem 1rem;
-  margin-top: -2rem;
+  padding: ${({ isSpaceAtTop }) => (isSpaceAtTop ? '1rem 1.25rem 1rem 1rem' : '3rem 1.25rem 1rem 1rem')};
+  margin-top: ${({ isSpaceAtTop }) => (isSpaceAtTop ? '' : '-2rem')};
   color: ${({ theme }) => theme.red1};
   z-index: -1;
   p {
@@ -120,9 +129,9 @@ const SwapCallbackErrorInnerAlertTriangle = styled.div`
   height: 48px;
 `
 
-export function SwapCallbackError({ error }: { error: string }) {
+export function SwapCallbackError({ error, isSpaceAtTop }: { error: string; isSpaceAtTop?: boolean }) {
   return (
-    <SwapCallbackErrorInner>
+    <SwapCallbackErrorInner isSpaceAtTop={isSpaceAtTop}>
       <SwapCallbackErrorInnerAlertTriangle>
         <AlertTriangle size={24} />
       </SwapCallbackErrorInnerAlertTriangle>

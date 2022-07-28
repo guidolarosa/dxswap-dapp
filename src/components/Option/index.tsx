@@ -1,7 +1,12 @@
 import styled from 'styled-components'
+
 import border8pxRadius from '../../assets/images/border-8px-radius.png'
 
-export const Option = styled.button<{ active?: boolean; width?: string; transparent?: boolean }>`
+export const Option = styled.button<{
+  active?: boolean
+  width?: string
+  transparent?: boolean
+}>`
   color: ${({ theme }) => theme.text1};
   align-items: center;
   height: 2rem;
@@ -18,10 +23,10 @@ export const Option = styled.button<{ active?: boolean; width?: string; transpar
   cursor: pointer;
   border: none;
   background-color: ${({ active, theme, transparent }) => {
-  if (transparent) {
-    return 'transparent'
-  }
-  return active ? theme.primary1 : theme.bg2
-}};
+    if (transparent) {
+      return 'transparent'
+    }
+    return active ? theme.primary1 : theme.bg2
+  }};
   color: ${({ theme }) => theme.white};
 `

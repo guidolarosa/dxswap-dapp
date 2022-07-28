@@ -1,41 +1,79 @@
-import { BLOCKED_PRICE_IMPACT_NON_EXPERT } from '../constants'
+import { parseUnits } from '@ethersproject/units'
 import {
+  _100,
+  _10000,
+  Currency,
   CurrencyAmount,
+  CurveTrade,
   Fraction,
+  GnosisProtocolTrade,
   JSBI,
+  Pair,
   Percent,
+  Price,
   TokenAmount,
   Trade,
-  Pair,
-  Price,
-  Currency,
-  _10000,
-  _100
+  UniswapTrade,
+  UniswapV2Trade,
+  ZERO,
+  ZeroXTrade,
 } from '@swapr/sdk'
-import { ALLOWED_PRICE_IMPACT_HIGH, ALLOWED_PRICE_IMPACT_LOW, ALLOWED_PRICE_IMPACT_MEDIUM } from '../constants'
-import { Field } from '../state/swap/actions'
-import { basisPointsToPercent } from './index'
-import Decimal from 'decimal.js-light'
-import { parseUnits } from 'ethers/lib/utils'
+
+import _Decimal from 'decimal.js-light'
+import toFormat from 'toformat'
+
+import {
+  ALLOWED_FIAT_PRICE_IMPACT_HIGH,
+  ALLOWED_PRICE_IMPACT_HIGH,
+  ALLOWED_PRICE_IMPACT_LOW,
+  ALLOWED_PRICE_IMPACT_MEDIUM,
+  BLOCKED_PRICE_IMPACT_NON_EXPERT,
+  NO_PRICE_IMPACT,
+  PRICE_IMPACT_HIGH,
+  PRICE_IMPACT_LOW,
+  PRICE_IMPACT_MEDIUM,
+  PRICE_IMPACT_NON_EXPERT,
+} from '../constants'
+import { Field } from '../state/swap/types'
+
+const Decimal = toFormat(_Decimal)
 
 const ONE_HUNDRED_PERCENT = new Percent(_10000, _10000)
 
+interface TradePriceBreakdown {
+  priceImpactWithoutFee?: Percent
+  realizedLPFee?: Percent
+  realizedLPFeeAmount?: CurrencyAmount
+}
+
 // computes price breakdown for the trade
-export function computeTradePriceBreakdown(
-  trade?: Trade
-): { priceImpactWithoutFee?: Percent; realizedLPFee?: Percent; realizedLPFeeAmount?: CurrencyAmount } {
+export function computeTradePriceBreakdown(trade?: Trade): TradePriceBreakdown {
+  // early exit
+  if (!trade) {
+    return {}
+  }
+
   // for each hop in our trade, take away the x*y=k price impact from 0.3% fees
   // e.g. for 3 tokens/2 hops: 1 - ((1 - .03) * (1-.03))
-  const realizedLPFee = !trade
-    ? undefined
-    : ONE_HUNDRED_PERCENT.subtract(
-        trade.route.pairs.reduce<Fraction>((currentFee: Fraction, currentIndex: Pair): Fraction => {
+  const realizedLPFee: Percent | undefined = computeRealizedLPFee(trade)
+
+  function computeRealizedLPFee(trade: Trade) {
+    if (trade instanceof UniswapV2Trade) {
+      const totalRoutesFee = trade.route.pairs.reduce<Fraction>(
+        (currentFee: Fraction, currentIndex: Pair): Fraction => {
           return currentFee.multiply(
             ONE_HUNDRED_PERCENT.subtract(new Percent(JSBI.BigInt(currentIndex.swapFee.toString()), _10000))
           )
-        }, ONE_HUNDRED_PERCENT)
+        },
+        ONE_HUNDRED_PERCENT
       )
-
+      return ONE_HUNDRED_PERCENT.subtract(totalRoutesFee)
+    } else if (trade instanceof GnosisProtocolTrade || trade instanceof UniswapTrade || trade instanceof ZeroXTrade) {
+      return trade.fee
+    } else if (trade instanceof CurveTrade) {
+      return ONE_HUNDRED_PERCENT.subtract(ONE_HUNDRED_PERCENT.subtract(trade.fee))
+    } else return undefined
+  }
   // remove lp fees from price impact
   const priceImpactWithoutFeeFraction = trade && realizedLPFee ? trade.priceImpact.subtract(realizedLPFee) : undefined
 
@@ -44,17 +82,20 @@ export function computeTradePriceBreakdown(
     ? new Percent(priceImpactWithoutFeeFraction?.numerator, priceImpactWithoutFeeFraction?.denominator)
     : undefined
 
-  // the amount of the input that accrues to LPs
-  const realizedLPFeeAmount = !trade
-    ? undefined
-    : realizedLPFee &&
-      (trade.inputAmount instanceof TokenAmount
-        ? new TokenAmount(trade.inputAmount.token, realizedLPFee.multiply(trade.inputAmount.raw).quotient)
-        : CurrencyAmount.nativeCurrency(realizedLPFee.multiply(trade.inputAmount.raw).quotient, trade.chainId))
+  function computeRealizedLPFeeAmount(trade: Trade, realizedLPFee?: Fraction) {
+    if (!realizedLPFee) return undefined
+
+    if (trade instanceof GnosisProtocolTrade) return (trade as GnosisProtocolTrade).feeAmount
+    else if (trade.inputAmount instanceof TokenAmount)
+      return new TokenAmount(trade.inputAmount.token, realizedLPFee.multiply(trade.inputAmount.raw).quotient)
+    else return CurrencyAmount.nativeCurrency(realizedLPFee.multiply(trade.inputAmount.raw).quotient, trade.chainId)
+  }
+  const realizedLPFeeAmount = computeRealizedLPFeeAmount(trade, realizedLPFee)
+
   return {
     priceImpactWithoutFee: priceImpactWithoutFeePercent,
     realizedLPFee: realizedLPFee ? new Percent(realizedLPFee.numerator, realizedLPFee.denominator) : undefined,
-    realizedLPFeeAmount
+    realizedLPFeeAmount,
   }
 }
 
@@ -78,23 +119,35 @@ export function calculateProtocolFee(
 }
 
 // computes the minimum amount out and maximum amount in for a trade given a user specified allowed slippage in bips
-export function computeSlippageAdjustedAmounts(
-  trade: Trade | undefined,
-  allowedSlippage: number
-): { [field in Field]?: CurrencyAmount } {
-  const pct = basisPointsToPercent(allowedSlippage)
+export function computeSlippageAdjustedAmounts(trade: Trade | undefined): { [field in Field]?: CurrencyAmount } {
   return {
-    [Field.INPUT]: trade?.maximumAmountIn(pct),
-    [Field.OUTPUT]: trade?.minimumAmountOut(pct)
+    [Field.INPUT]: trade?.maximumAmountIn(),
+    [Field.OUTPUT]: trade?.minimumAmountOut(),
   }
 }
 
+const ALLOWED_PRICE_IMPACT_PERCENTAGE: { [key: number]: Percent } = {
+  [PRICE_IMPACT_NON_EXPERT]: BLOCKED_PRICE_IMPACT_NON_EXPERT,
+  [PRICE_IMPACT_HIGH]: ALLOWED_PRICE_IMPACT_HIGH,
+  [PRICE_IMPACT_MEDIUM]: ALLOWED_PRICE_IMPACT_MEDIUM,
+  [PRICE_IMPACT_LOW]: ALLOWED_PRICE_IMPACT_LOW,
+}
+
+const ALLOWED_FIAT_PRICE_IMPACT_PERCENTAGE: { [key: number]: Percent } = {
+  [PRICE_IMPACT_HIGH]: ALLOWED_FIAT_PRICE_IMPACT_HIGH,
+}
+
 export function warningSeverity(priceImpact: Percent | undefined): 0 | 1 | 2 | 3 | 4 {
-  if (!priceImpact?.lessThan(BLOCKED_PRICE_IMPACT_NON_EXPERT)) return 4
-  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_HIGH)) return 3
-  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_MEDIUM)) return 2
-  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_LOW)) return 1
-  return 0
+  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_PERCENTAGE[PRICE_IMPACT_NON_EXPERT])) return PRICE_IMPACT_NON_EXPERT
+  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_PERCENTAGE[PRICE_IMPACT_HIGH])) return PRICE_IMPACT_HIGH
+  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_PERCENTAGE[PRICE_IMPACT_MEDIUM])) return PRICE_IMPACT_MEDIUM
+  if (!priceImpact?.lessThan(ALLOWED_PRICE_IMPACT_PERCENTAGE[PRICE_IMPACT_LOW])) return PRICE_IMPACT_LOW
+  return NO_PRICE_IMPACT
+}
+
+export function simpleWarningSeverity(priceImpact: Percent | undefined): 0 | 3 {
+  if (!priceImpact?.lessThan(ALLOWED_FIAT_PRICE_IMPACT_PERCENTAGE[PRICE_IMPACT_HIGH])) return PRICE_IMPACT_HIGH
+  return NO_PRICE_IMPACT
 }
 
 export function formatExecutionPrice(trade?: Trade, inverted?: boolean): string {
@@ -144,10 +197,37 @@ export function getLpTokenPrice(
         new Decimal(totalSupply).toFixed(pair.liquidityToken.decimals),
         pair.liquidityToken.decimals
       ).toString()
-  return new Price(
-    pair.liquidityToken,
-    nativeCurrency,
-    priceDenominator,
-    parseUnits(new Decimal(reserveNativeCurrency).toFixed(nativeCurrency.decimals), nativeCurrency.decimals).toString()
-  )
+  return new Price({
+    baseCurrency: pair.liquidityToken,
+    quoteCurrency: nativeCurrency,
+    denominator: priceDenominator,
+    numerator: parseUnits(
+      new Decimal(reserveNativeCurrency).toFixed(nativeCurrency.decimals),
+      nativeCurrency.decimals
+    ).toString(),
+  })
+}
+
+/**
+ * Returns trimmed fraction value to limit number of decimal places
+ * @param value Fraction value to trim
+ * @param significantDigits Limit number of decimal places
+ * @param rounding Rounding mode
+ */
+export const limitNumberOfDecimalPlaces = (
+  value?: CurrencyAmount | Fraction,
+  significantDigits = 6,
+  format = { groupSeparator: '' },
+  rounding = Decimal.ROUND_DOWN
+): string | undefined => {
+  if (!value || value.equalTo(ZERO)) return undefined
+  if (value instanceof CurrencyAmount && value.currency.decimals < significantDigits)
+    significantDigits =
+      typeof value.currency.decimals === 'string' ? parseInt(value.currency.decimals) : value.currency.decimals
+
+  const fixedQuotient = value.toFixed(significantDigits)
+  Decimal.set({ precision: significantDigits + 1, rounding })
+  const quotient = new Decimal(fixedQuotient).toSignificantDigits(6)
+
+  return quotient.toFormat(quotient.decimalPlaces(), format)
 }

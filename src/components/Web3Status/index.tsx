@@ -1,41 +1,31 @@
-import { UnsupportedChainIdError, useWeb3React } from '@web3-react/core'
 import { AbstractConnector } from '@web3-react/abstract-connector'
-import React, { useCallback, useMemo, useState } from 'react'
+import { UnsupportedChainIdError, useWeb3React } from '@web3-react/core'
+import { WalletConnectConnector } from '@web3-react/walletconnect-connector'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import styled from 'styled-components'
+
 import { NetworkContextName } from '../../constants'
+import { useActiveWeb3React, useUnsupportedChainIdError } from '../../hooks'
+import { useENSAvatar } from '../../hooks/useENSAvatar'
 import useENSName from '../../hooks/useENSName'
+import { useIsMobileByMedia } from '../../hooks/useIsMobileByMedia'
+import { ApplicationModal } from '../../state/application/actions'
+import {
+  useCloseModals,
+  useModalOpen,
+  useNetworkSwitcherPopoverToggle,
+  useOpenModal,
+  useWalletSwitcherPopoverToggle,
+} from '../../state/application/hooks'
 import { isTransactionRecent, useAllTransactions } from '../../state/transactions/hooks'
 import { TransactionDetails } from '../../state/transactions/reducer'
-import { useActiveWeb3React } from '../../hooks'
-import { ConnectWalletPopover } from './ConnectWalletPopover'
+import { TriangleIcon } from '../Icons'
+import NetworkSwitcherPopover from '../NetworkSwitcherPopover'
+import Row from '../Row'
 import WalletModal from '../WalletModal'
 import { AccountStatus } from './AccountStatus'
-import { WalletConnectConnector } from '@web3-react/walletconnect-connector'
-import NetworkSwitcherPopover from '../NetworkSwitcherPopover'
-import { useNetworkSwitcherPopoverToggle, useWalletSwitcherPopoverToggle } from '../../state/application/hooks'
-import { TriangleIcon } from '../Icons'
-import { useTranslation } from 'react-i18next'
-import Row from '../Row'
-import { useIsMobileByMedia } from '../../hooks/useIsMobileByMedia'
-import { useENSAvatar } from '../../hooks/useENSAvatar'
-import { ApplicationModal } from '../../state/application/actions'
-
-const Web3StatusError = styled.div`
-  display: flex;
-  align-items: center;
-  padding: 0 0 0 10px;
-  color: ${({ theme }) => theme.text1};
-  text-transform: uppercase;
-  font-weight: bold;
-  font-size: 10px;
-  line-height: 12px;
-  letter-spacing: 0.08em;
-  background-color: ${({ theme }) => theme.red1};
-  border-radius: 12px;
-  ${({ theme }) => theme.mediaWidth.upToExtraSmall`
-    font-size: 9px;
-  `};
-`
+import { ConnectWalletPopover } from './ConnectWalletPopover'
 
 const SwitchNetworkButton = styled.button`
   display: flex;
@@ -82,7 +72,7 @@ function newTransactionsFirst(a: TransactionDetails, b: TransactionDetails) {
 
 export enum ModalView {
   Pending,
-  Account
+  Account,
 }
 
 export default function Web3Status() {
@@ -108,12 +98,15 @@ export default function Web3Status() {
   const [pendingWallet, setPendingWallet] = useState<AbstractConnector | undefined>()
 
   const toggleNetworkSwitcherPopover = useNetworkSwitcherPopoverToggle()
+  const openUnsupportedNetworkModal = useOpenModal(ApplicationModal.UNSUPPORTED_NETWORK)
 
   const tryActivation = async (connector: AbstractConnector | undefined) => {
     setPendingWallet(connector)
     setModal(ModalView.Pending)
 
     // if the connector is walletconnect and the user has already tried to connect, manually reset the connector
+    // eslint-disable-next-line
+    // @ts-ignore
     if (connector instanceof WalletConnectConnector && connector.walletConnectProvider?.wc?.uri) {
       connector.walletConnectProvider = undefined
     }
@@ -129,30 +122,45 @@ export default function Web3Status() {
   }
 
   const toggleWalletSwitcherPopover = useWalletSwitcherPopoverToggle()
-  const { t } = useTranslation()
+  const { t } = useTranslation('common')
   const mobileByMedia = useIsMobileByMedia()
-  const unsupportedChain = useMemo(() => {
-    return error && error instanceof UnsupportedChainIdError
-  }, [error])
+  const [isUnsupportedNetwork, setUnsupportedNetwork] = useState(false)
+  const isUnsupportedNetworkModal = useModalOpen(ApplicationModal.UNSUPPORTED_NETWORK)
+  const closeModals = useCloseModals()
+
+  const unsupportedChainIdError = useUnsupportedChainIdError()
+
+  useEffect(() => {
+    if (!isUnsupportedNetworkModal && !isUnsupportedNetwork && unsupportedChainIdError) {
+      setUnsupportedNetwork(true)
+      openUnsupportedNetworkModal()
+    } else if (!isUnsupportedNetworkModal && isUnsupportedNetwork && !unsupportedChainIdError) {
+      setUnsupportedNetwork(false)
+    } else if (isUnsupportedNetworkModal && !unsupportedChainIdError) {
+      closeModals()
+    }
+  }, [
+    isUnsupportedNetwork,
+    openUnsupportedNetworkModal,
+    isUnsupportedNetworkModal,
+    unsupportedChainIdError,
+    closeModals,
+  ])
 
   const clickHandler = useCallback(() => {
-    !unsupportedChain && toggleNetworkSwitcherPopover()
-  }, [unsupportedChain, toggleNetworkSwitcherPopover])
+    toggleNetworkSwitcherPopover()
+  }, [toggleNetworkSwitcherPopover])
 
   if (!contextNetwork.active && !active) {
     return null
   }
-
   if (error) {
     return (
       <NetworkSwitcherPopover modal={ApplicationModal.NETWORK_SWITCHER}>
-        <Web3StatusError>
-          {unsupportedChain ? 'Wrong Network' : 'Error'}
-          <SwitchNetworkButton onClick={clickHandler} disabled={unsupportedChain}>
-            Switch network
-            <TriangleIcon />
-          </SwitchNetworkButton>
-        </Web3StatusError>
+        <SwitchNetworkButton onClick={clickHandler}>
+          Switch network
+          <TriangleIcon />
+        </SwitchNetworkButton>
       </NetworkSwitcherPopover>
     )
   }
@@ -163,7 +171,7 @@ export default function Web3Status() {
         <Row alignItems="center" justifyContent="flex-end">
           {networkConnectorChainId && !account && (
             <Button id="connect-wallet" onClick={toggleWalletSwitcherPopover}>
-              {mobileByMedia ? 'Connect' : t('Connect wallet')}
+              {mobileByMedia ? 'Connect' : t('connectWallet')}
             </Button>
           )}
           <AccountStatus

@@ -1,8 +1,12 @@
-import React from 'react'
 import { Price } from '@swapr/sdk'
-import { TYPE } from '../../theme'
-import styled from 'styled-components'
+
 import { transparentize } from 'polished'
+import React from 'react'
+import styled from 'styled-components'
+
+import { useIsMobileByMedia } from '../../hooks/useIsMobileByMedia'
+import { TYPE } from '../../theme'
+import { limitNumberOfDecimalPlaces } from '../../utils/prices'
 import { RowFixed } from '../Row'
 
 const Wrapper = styled(RowFixed)`
@@ -19,19 +23,23 @@ interface TradePriceProps {
 }
 
 export default function TradePrice({ price, showInverted, setShowInverted }: TradePriceProps) {
-  const formattedPrice = showInverted ? price?.toSignificant(6) : price?.invert()?.toSignificant(6)
+  const isMobileByMedia = useIsMobileByMedia()
+  const significantDigits = isMobileByMedia ? 6 : 14
+  const formattedPrice = limitNumberOfDecimalPlaces(showInverted ? price : price?.invert(), significantDigits)
 
   const show = Boolean(price?.baseCurrency && price?.quoteCurrency)
+  const quoteCurrenxy = price?.quoteCurrency.symbol?.slice(0, 6)
+  const baseCurrency = price?.baseCurrency.symbol?.slice(0, 6)
   const label = showInverted
-    ? `${price?.quoteCurrency?.symbol} per ${price?.baseCurrency?.symbol}`
-    : `${price?.baseCurrency?.symbol} per ${price?.quoteCurrency?.symbol}`
+    ? `${quoteCurrenxy} ${isMobileByMedia ? `/` : `per`} ${baseCurrency}`
+    : `${baseCurrency} ${isMobileByMedia ? `/` : `per`}  ${quoteCurrenxy}`
 
   return (
     <Wrapper onClick={() => setShowInverted(!showInverted)}>
       {show ? (
         <>
           <TYPE.body mr="4px" fontSize="13px" lineHeight="12px" letterSpacing="0" fontWeight="700">
-            {formattedPrice ?? '-'}
+            {formattedPrice || '-'}
           </TYPE.body>
           <TYPE.body fontSize="13px" lineHeight="12px" letterSpacing="0" fontWeight="500">
             {label}

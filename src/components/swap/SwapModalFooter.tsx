@@ -1,14 +1,17 @@
-import { Trade, TradeType } from '@swapr/sdk'
+import { Trade, TradeType, UniswapV2Trade } from '@swapr/sdk'
+
 import React, { useMemo, useState } from 'react'
 import { Repeat } from 'react-feather'
 import { Text } from 'rebass'
-import { Field } from '../../state/swap/actions'
+
+import { PRICE_IMPACT_MEDIUM } from '../../constants'
+import { Field } from '../../state/swap/types'
 import { TYPE } from '../../theme'
 import {
   computeSlippageAdjustedAmounts,
   computeTradePriceBreakdown,
   formatExecutionPrice,
-  warningSeverity
+  warningSeverity,
 } from '../../utils/prices'
 import { ButtonError } from '../Button'
 import { AutoColumn } from '../Column'
@@ -20,9 +23,9 @@ import { StyledBalanceMaxMini, SwapCallbackError } from './styleds'
 export default function SwapModalFooter({
   trade,
   onConfirm,
-  allowedSlippage,
+  // allowedSlippage,
   swapErrorMessage,
-  disabledConfirm
+  disabledConfirm,
 }: {
   trade: Trade
   allowedSlippage: number
@@ -31,11 +34,11 @@ export default function SwapModalFooter({
   disabledConfirm: boolean
 }) {
   const [showInverted, setShowInverted] = useState<boolean>(false)
-  const slippageAdjustedAmounts = useMemo(() => computeSlippageAdjustedAmounts(trade, allowedSlippage), [
-    allowedSlippage,
-    trade
-  ])
-  const { priceImpactWithoutFee, realizedLPFeeAmount } = useMemo(() => computeTradePriceBreakdown(trade), [trade])
+  const slippageAdjustedAmounts = useMemo(() => computeSlippageAdjustedAmounts(trade), [trade])
+  const { priceImpactWithoutFee, realizedLPFeeAmount } = useMemo(
+    () => computeTradePriceBreakdown(trade as UniswapV2Trade),
+    [trade]
+  )
   const severity = warningSeverity(priceImpactWithoutFee)
 
   return (
@@ -54,7 +57,7 @@ export default function SwapModalFooter({
               alignItems: 'center',
               display: 'flex',
               textAlign: 'right',
-              paddingLeft: '10px'
+              paddingLeft: '10px',
             }}
           >
             {formatExecutionPrice(trade, showInverted)}
@@ -72,7 +75,7 @@ export default function SwapModalFooter({
             <QuestionHelper text="Your transaction will revert if there is a large, unfavorable price movement before it is confirmed." />
           </RowFixed>
           <RowFixed>
-            <TYPE.body fontWeight={500} fontSize="12px" color="text5">
+            <TYPE.body fontWeight={500} fontSize="12px" color="text5" data-testid="estimated-output">
               {trade.tradeType === TradeType.EXACT_INPUT
                 ? slippageAdjustedAmounts[Field.OUTPUT]?.toSignificant(4) ?? '-'
                 : slippageAdjustedAmounts[Field.INPUT]?.toSignificant(4) ?? '-'}
@@ -112,15 +115,15 @@ export default function SwapModalFooter({
         <ButtonError
           onClick={onConfirm}
           disabled={disabledConfirm}
-          error={severity > 2}
+          error={severity > PRICE_IMPACT_MEDIUM}
           style={{ margin: '10px 0 0 0' }}
           id="confirm-swap-or-send"
         >
+          {' '}
           <Text fontSize={13} fontWeight={600}>
-            {severity > 2 ? 'Swap Anyway' : 'Confirm Swap'}
+            {severity > PRICE_IMPACT_MEDIUM ? 'Swap Anyway' : 'Confirm Swap'}
           </Text>
         </ButtonError>
-
         {swapErrorMessage ? <SwapCallbackError error={swapErrorMessage} /> : null}
       </AutoRow>
     </>

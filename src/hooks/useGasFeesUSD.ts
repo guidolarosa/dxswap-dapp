@@ -1,16 +1,20 @@
+import { parseUnits } from '@ethersproject/units'
 import { CurrencyAmount, USD } from '@swapr/sdk'
+
 import { BigNumber } from 'ethers'
-import { parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
-import { useActiveWeb3React } from '.'
+
 import { MainnetGasPrice } from '../state/application/actions'
 import { useMainnetGasPrices } from '../state/application/hooks'
 import { useUserPreferredGasPrice } from '../state/user/hooks'
 import { useNativeCurrencyUSDPrice } from './useNativeCurrencyUSDPrice'
 
-export function useGasFeesUSD(
-  gasEstimations: (BigNumber | null)[]
-): { loading: boolean; gasFeesUSD: (CurrencyAmount | null)[] } {
+import { useActiveWeb3React } from './index'
+
+export function useGasFeesUSD(gasEstimations: (BigNumber | null)[]): {
+  loading: boolean
+  gasFeesUSD: (CurrencyAmount | null)[]
+} {
   const { chainId } = useActiveWeb3React()
   const mainnetGasPrices = useMainnetGasPrices()
   const [preferredGasPrice] = useUserPreferredGasPrice()
@@ -47,7 +51,7 @@ export function useGasFeesUSD(
             USD.decimals
           ).toString()
         )
-      })
+      }),
     }
   }, [
     gasEstimations,
@@ -55,6 +59,6 @@ export function useGasFeesUSD(
     mainnetGasPrices,
     nativeCurrencyUSDPrice,
     preferredGasPrice,
-    chainId
+    chainId,
   ])
 }

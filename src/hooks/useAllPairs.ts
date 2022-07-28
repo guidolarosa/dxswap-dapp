@@ -1,8 +1,10 @@
-import { gql, useQuery } from '@apollo/client'
 import { Pair, Token, TokenAmount } from '@swapr/sdk'
+
+import { gql, useQuery } from '@apollo/client'
 import { getAddress, parseUnits } from 'ethers/lib/utils'
 import { useMemo } from 'react'
-import { useActiveWeb3React } from '.'
+
+import { useActiveWeb3React } from './index'
 
 const QUERY = gql`
   query {
@@ -64,7 +66,7 @@ export function useAllPairs(): { loading: boolean; pairs: Pair[] } {
         )
         pairs.push(new Pair(tokenAmountA, tokenAmountB))
         return pairs
-      }, [])
+      }, []),
     }
   }, [chainId, data, error, loading])
 }

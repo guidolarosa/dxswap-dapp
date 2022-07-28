@@ -1,8 +1,11 @@
 import { FunctionFragment, Interface } from '@ethersproject/abi'
 import { BigNumber } from '@ethersproject/bignumber'
 import { Contract } from '@ethersproject/contracts'
+
+import debounce from 'lodash/debounce'
 import { useEffect, useMemo } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
 import { AppState } from '..'
 import { useActiveWeb3React } from '../../hooks'
 import { useBlockNumber } from '../application/hooks'
@@ -40,7 +43,7 @@ const INVALID_RESULT: CallResult = { valid: false, blockNumber: undefined, data:
 
 // use this options object
 export const NEVER_RELOAD: ListenerOptions = {
-  blocksPerFetch: Infinity
+  blocksPerFetch: Infinity,
 }
 
 // the lowest level call for subscribing to contract data
@@ -52,40 +55,52 @@ function useCallsData(
   const callResults = useSelector<AppState, MulticallState['callResults']>(state => state.multicall.callResults)
   const dispatch = useDispatch()
 
-  const serializedCallKeys: string = useMemo(
-    () =>
-      JSON.stringify(
-        calls
-          ?.filter((c): c is Call => Boolean(c))
-          ?.map(toCallKey)
-          ?.sort() ?? []
-      ),
-    [calls]
-  )
+  const { callKeys, stringifiedCalls } = useMemo(() => {
+    const filteredCalls =
+      calls
+        ?.filter((c): c is Call => Boolean(c))
+        ?.map(toCallKey)
+        ?.sort() ?? []
+    return {
+      callKeys: filteredCalls.map(key => parseCallKey(key)),
+      stringifiedCalls: JSON.stringify(filteredCalls),
+    }
+  }, [calls])
 
-  // update listeners when there is an actual change that persists for at least 100ms
-  useEffect(() => {
-    const callKeys: string[] = JSON.parse(serializedCallKeys)
-    if (!chainId || callKeys.length === 0) return undefined
-    const calls = callKeys.map(key => parseCallKey(key))
-    dispatch(
-      addMulticallListeners({
-        chainId,
-        calls,
-        options: { blocksPerFetch }
-      })
-    )
+  const debouncedAddMultiCall = useMemo(() => {
+    return debounce((chainId, calls) => {
+      dispatch(
+        addMulticallListeners({
+          chainId,
+          calls,
+          options: { blocksPerFetch },
+        })
+      )
+    }, 250)
+  }, [dispatch, blocksPerFetch])
 
-    return () => {
+  const debouncedRemoveMultiCall = useMemo(() => {
+    return debounce((chainId, calls) => {
       dispatch(
         removeMulticallListeners({
           chainId,
           calls,
-          options: { blocksPerFetch }
+          options: { blocksPerFetch },
         })
       )
+    }, 250)
+  }, [dispatch, blocksPerFetch])
+
+  // update listeners when there is an actual change that persists for at least 100ms
+  useEffect(() => {
+    if (!chainId || callKeys.length === 0) return undefined
+    debouncedAddMultiCall(chainId, callKeys)
+
+    return () => {
+      debouncedRemoveMultiCall(chainId, callKeys)
     }
-  }, [chainId, dispatch, blocksPerFetch, serializedCallKeys])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chainId, dispatch, stringifiedCalls, debouncedAddMultiCall, debouncedRemoveMultiCall])
 
   return useMemo(
     () =>
@@ -143,7 +158,7 @@ function toCallState(
         loading: false,
         error: true,
         syncing,
-        result
+        result,
       }
     }
   }
@@ -152,7 +167,7 @@ function toCallState(
     loading: false,
     syncing,
     result: result,
-    error: !success
+    error: !success,
   }
 }
 
@@ -174,7 +189,7 @@ export function useSingleContractMultipleData(
             return {
               address: contract.address,
               callData: contract.interface.encodeFunctionData(fragment, inputs),
-              ...(gasRequired ? { gasRequired } : {})
+              ...(gasRequired ? { gasRequired } : {}),
             }
           })
         : [],
@@ -218,7 +233,7 @@ export function useMultipleContractSingleData(
               ? {
                   address,
                   callData,
-                  ...(gasRequired ? { gasRequired } : {})
+                  ...(gasRequired ? { gasRequired } : {}),
                 }
               : undefined
           })
@@ -252,8 +267,8 @@ export function useSingleCallResult(
           {
             address: contract.address,
             callData: contract.interface.encodeFunctionData(fragment, inputs),
-            ...(gasRequired ? { gasRequired } : {})
-          }
+            ...(gasRequired ? { gasRequired } : {}),
+          },
         ]
       : []
   }, [contract, fragment, inputs, gasRequired])

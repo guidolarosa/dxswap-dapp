@@ -1,13 +1,15 @@
+import { ChainId, Currency, Token } from '@swapr/sdk'
+
 import { TokenList } from '@uniswap/token-lists'
 import { useMemo } from 'react'
 import { useSelector } from 'react-redux'
-import sortByListPriority from '../../utils/listSort'
-import UNSUPPORTED_TOKEN_LIST from '../../constants/tokenLists/swapr-unsupported.tokenlist.json'
-import { AppState } from '../index'
+
 import { UNSUPPORTED_LIST_URLS } from '../../constants/lists'
-import { WrappedTokenInfo } from './wrapped-token-info'
-import { ChainId, Currency, Token } from '@swapr/sdk'
+import UNSUPPORTED_TOKEN_LIST from '../../constants/tokenLists/swapr-unsupported.tokenlist.json'
 import { useActiveWeb3React } from '../../hooks'
+import sortByListPriority from '../../utils/listSort'
+import { AppState } from '../index'
+import { WrappedTokenInfo } from './wrapped-token-info'
 
 export type TokenAddressMap = Readonly<{
   [chainId: number]: Readonly<{ [tokenAddress: string]: { token: WrappedTokenInfo; list: TokenList } }>
@@ -16,10 +18,12 @@ export type TokenAddressMap = Readonly<{
 const listCache: WeakMap<TokenList, TokenAddressMap> | null =
   typeof WeakMap !== 'undefined' ? new WeakMap<TokenList, TokenAddressMap>() : null
 
-export function listToTokenMap(list: TokenList | null): TokenAddressMap {
+export function listToTokenMap(list: TokenList | null, useCache = true): TokenAddressMap {
   if (!list) return {}
-  const result = listCache?.get(list)
-  if (result) return result
+  if (useCache) {
+    const result = listCache?.get(list)
+    if (result) return result
+  }
 
   const map = list.tokens.reduce<TokenAddressMap>((tokenMap, tokenInfo) => {
     const token = new WrappedTokenInfo(tokenInfo, list)
@@ -33,12 +37,12 @@ export function listToTokenMap(list: TokenList | null): TokenAddressMap {
         ...tokenMap[token.chainId],
         [token.address]: {
           token,
-          list
-        }
-      }
+          list,
+        },
+      },
     }
   }, {})
-  listCache?.set(list, map)
+  if (useCache) listCache?.set(list, map)
   return map
 }
 
@@ -51,8 +55,9 @@ function combineMaps(map1: TokenAddressMap, map2: TokenAddressMap): TokenAddress
     [ChainId.MAINNET]: { ...map1[ChainId.MAINNET], ...map2[ChainId.MAINNET] },
     [ChainId.RINKEBY]: { ...map1[ChainId.RINKEBY], ...map2[ChainId.RINKEBY] },
     [ChainId.XDAI]: { ...map1[ChainId.XDAI], ...map2[ChainId.XDAI] },
+    [ChainId.POLYGON]: { ...map1[ChainId.POLYGON], ...map2[ChainId.POLYGON] },
     [ChainId.ARBITRUM_ONE]: { ...map1[ChainId.ARBITRUM_ONE], ...map2[ChainId.ARBITRUM_ONE] },
-    [ChainId.ARBITRUM_RINKEBY]: { ...map1[ChainId.ARBITRUM_RINKEBY], ...map2[ChainId.ARBITRUM_RINKEBY] }
+    [ChainId.ARBITRUM_RINKEBY]: { ...map1[ChainId.ARBITRUM_RINKEBY], ...map2[ChainId.ARBITRUM_RINKEBY] },
   }
 }
 
@@ -131,13 +136,8 @@ export function useUnsupportedTokenList(): TokenAddressMap {
   const loadedUnsupportedListMap = useCombinedTokenMapFromUrls(UNSUPPORTED_LIST_URLS)
 
   // format into one token address map
-  return useMemo(() => combineMaps(localUnsupportedListMap, loadedUnsupportedListMap), [
-    localUnsupportedListMap,
-    loadedUnsupportedListMap
-  ])
-}
-
-export function useIsListActive(url: string): boolean {
-  const activeListUrls = useActiveListUrls()
-  return Boolean(activeListUrls?.includes(url))
+  return useMemo(
+    () => combineMaps(localUnsupportedListMap, loadedUnsupportedListMap),
+    [localUnsupportedListMap, loadedUnsupportedListMap]
+  )
 }

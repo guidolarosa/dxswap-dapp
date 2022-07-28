@@ -1,19 +1,18 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { AutoColumn } from '../Column'
-import styled from 'styled-components'
-import { RowBetween } from '../Row'
-import { TYPE, CloseIcon } from '../../theme'
-import { ButtonDark1, ButtonPurple } from '../Button'
-import { useActiveWeb3React } from '../../hooks'
+import { TokenAmount } from '@swapr/sdk'
+
 import { transparentize } from 'polished'
-import { ChainId, TokenAmount } from '@swapr/sdk'
-import { useIsOldSwaprLp } from '../../hooks/swpr/useIsOldSwaprLp'
-import useDebounce from '../../hooks/useDebounce'
-import { AddTokenButton } from '../AddTokenButton/AddTokenButton'
+import React, { useCallback } from 'react'
 import { Flex } from 'rebass'
-import { useHistory } from 'react-router'
-import Modal from '../Modal'
+import styled from 'styled-components'
+
+import { useRouter } from '../../hooks/useRouter'
 import { useShowClaimPopup } from '../../state/application/hooks'
+import { CloseIcon, TYPE } from '../../theme'
+import { AddTokenButton } from '../AddTokenButton/AddTokenButton'
+import { ButtonDark1, ButtonPurple } from '../Button'
+import { AutoColumn } from '../Column'
+import Modal from '../Modal'
+import { RowBetween } from '../Row'
 
 const ContentWrapper = styled(AutoColumn)`
   width: 100%;
@@ -26,39 +25,19 @@ const UpperAutoColumn = styled(AutoColumn)`
   backdrop-filter: blur(12px);
 `
 
-const NativeCurrencyWarning = styled.div`
-  width: 100%;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 17px;
-  letter-spacing: 0em;
-  margin-bottom: 12px;
-  color: ${props => props.theme.red1};
-`
-
 export default function ClaimModal({
   onDismiss,
   newSwprBalance,
   stakedAmount,
-  singleSidedCampaignLink
+  singleSidedCampaignLink,
 }: {
   onDismiss: () => void
   newSwprBalance?: TokenAmount
   stakedAmount?: string | null
   singleSidedCampaignLink?: string
 }) {
-  const { account, chainId } = useActiveWeb3React()
-  const { push } = useHistory()
-  const [correctNetwork, setCorrectNetwork] = useState(false)
+  const { navigate } = useRouter()
   const open = useShowClaimPopup()
-
-  const { isOldSwaprLp } = useIsOldSwaprLp(account || undefined)
-
-  const debouncedIsOldSwaprLP = useDebounce(isOldSwaprLp, 1000)
-
-  useEffect(() => {
-    setCorrectNetwork(chainId === ChainId.ARBITRUM_ONE)
-  }, [chainId])
 
   const wrappedOnDismiss = useCallback(() => {
     onDismiss()
@@ -66,7 +45,7 @@ export default function ClaimModal({
 
   const handleStakeUnstakeClick = () => {
     if (singleSidedCampaignLink) {
-      push({ pathname: '/rewards', state: { showSwpr: true } })
+      navigate('/rewards', { state: { showSwpr: true } })
       wrappedOnDismiss()
     }
   }
@@ -104,13 +83,6 @@ export default function ClaimModal({
           </RowBetween>
         </UpperAutoColumn>
         <AutoColumn gap="md" style={{ padding: '1rem', paddingTop: '0' }} justify="center">
-          {correctNetwork && debouncedIsOldSwaprLP && (
-            <NativeCurrencyWarning>
-              Seems like you have provided liquidity on the old Swapr build. Please pull all the provided liquidity and
-              come back to swapr.eth to proceed.
-            </NativeCurrencyWarning>
-          )}
-
           <AddTokenButton active={newSwprBalance?.greaterThan('0')} />
         </AutoColumn>
       </ContentWrapper>

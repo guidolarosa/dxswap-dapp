@@ -1,17 +1,25 @@
 import { parseBytes32String } from '@ethersproject/strings'
 import { Currency, Pair, Token } from '@swapr/sdk'
+
 import { arrayify } from 'ethers/lib/utils'
 import { useMemo } from 'react'
-import { useActiveWeb3React } from '.'
-import { createTokenFilterFunction } from '../components/SearchModal/filtering'
-import { useAllLists, useCombinedActiveList, useInactiveListUrls } from '../state/lists/hooks'
+
+import { createTokenFilterFunction } from '../components/SearchModal/utils/filtering'
+import {
+  TokenAddressMap,
+  useAllLists,
+  useCombinedActiveList,
+  useInactiveListUrls,
+  useUnsupportedTokenList,
+} from '../state/lists/hooks'
 import { WrappedTokenInfo } from '../state/lists/wrapped-token-info'
 import { NEVER_RELOAD, useSingleCallResult } from '../state/multicall/hooks'
 import { useUserAddedPairs, useUserAddedTokens } from '../state/user/hooks'
 import { isAddress } from '../utils'
-import { TokenAddressMap, useUnsupportedTokenList } from './../state/lists/hooks'
 import { useBytes32TokenContract, useTokenContract, useWrappingToken } from './useContract'
 import { useNativeCurrency } from './useNativeCurrency'
+
+import { useActiveWeb3React } from './index'
 
 // reduce token map into standard address <-> Token mapping, optionally include user added tokens
 function useTokensFromMap(tokenMap: TokenAddressMap, includeUserAdded: boolean): { [address: string]: Token } {
@@ -72,7 +80,7 @@ export function useSearchInactiveTokenLists(search: string | undefined, minResul
       if (!list) continue
       for (const tokenInfo of list.tokens) {
         if (tokenInfo.chainId === chainId && tokenFilter(tokenInfo)) {
-          const wrapped = new WrappedTokenInfo(tokenInfo, list)
+          const wrapped: WrappedTokenInfo = new WrappedTokenInfo(tokenInfo, list)
           if (!(wrapped.address in activeTokens) && !addressSet[wrapped.address]) {
             addressSet[wrapped.address] = true
             result.push(wrapped)
@@ -106,7 +114,11 @@ export function useIsUserAddedPair(pair: Pair): boolean {
 // parse a name or symbol from a token response
 const BYTES32_REGEX = /^0x[a-fA-F0-9]{64}$/
 
-function parseStringOrBytes32(str: string | undefined, bytes32: string | undefined, defaultValue: string): string {
+export function parseStringOrBytes32(
+  str: string | undefined,
+  bytes32: string | undefined,
+  defaultValue: string
+): string {
   return str && str.length > 0
     ? str
     : // need to check for proper bytes string and valid terminator
@@ -170,7 +182,7 @@ export function useToken(tokenAddress?: string): Token | undefined | null {
     tokenAddress,
     tokenName.loading,
     tokenName.result,
-    tokenNameBytes32.result
+    tokenNameBytes32.result,
   ])
 }
 

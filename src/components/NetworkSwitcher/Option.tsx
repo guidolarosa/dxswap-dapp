@@ -1,14 +1,17 @@
 import React from 'react'
 import styled from 'styled-components'
+
+import { StyledConnectedIcon } from '../../utils'
 import { AutoRow } from '../Row'
 import { NetworkOptions } from './NetworkSwitcher.types'
 
-const InfoCard = styled.button<{ active?: boolean }>`
+const InfoCard = styled.button<{ active?: boolean; connected?: boolean }>`
   background-color: transparent;
   outline: none;
   border: none;
   border-radius: 8px;
   width: 100% !important;
+  padding-left: ${props => (props.connected ? '0px' : null)};
 `
 
 const OptionCard = styled(InfoCard)`
@@ -28,34 +31,47 @@ const OptionCardClickable = styled(OptionCard)`
   transition: border 0.3s ease;
   color: white;
   cursor: pointer;
+  margin-bottom: 8px;
 
   &:disabled {
-    filter: grayscale(90%);
-    opacity: 0.6;
     cursor: not-allowed;
   }
 `
 
-const HeaderText = styled.div`
+const HeaderText = styled.div<{ connected?: boolean }>`
   ${({ theme }) => theme.flexRowNoWrap};
   text-transform: uppercase;
   font-size: 12px;
   font-weight: 700;
-  margin-left: 16px;
+  margin-left: ${props => (props.connected ? '4px' : '10px')};
 `
 
 const Icon = styled.img`
   width: 20px;
 `
 
-export default function Option({ preset, onClick, active = false, disabled = false }: NetworkOptions) {
+export default function Option({
+  preset,
+  onClick,
+  active = false,
+  disabled = false,
+  connected = false,
+}: NetworkOptions) {
   const { logoSrc, name } = preset
   return (
-    <OptionCardClickable onClick={onClick} disabled={disabled} active={active}>
+    <OptionCardClickable onClick={onClick} disabled={disabled} active={active} connected={connected}>
       <OptionCardLeft>
         <AutoRow>
+          {connected && <StyledConnectedIcon margin="0 5px 0 0" />}
           {logoSrc && <Icon src={logoSrc} alt={'Icon'} />}
-          <HeaderText>{name}</HeaderText>
+          <HeaderText
+            connected={connected}
+            data-testid={
+              preset.name?.valueOf().toString().toLowerCase().replace(/\s/g, '-').replace('.', '') + '-network-button'
+            }
+          >
+            {name}
+          </HeaderText>
         </AutoRow>
       </OptionCardLeft>
     </OptionCardClickable>

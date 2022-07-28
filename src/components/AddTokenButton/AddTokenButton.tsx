@@ -1,8 +1,10 @@
-import React, { useCallback, useMemo } from 'react'
 import { SWPR } from '@swapr/sdk'
+
+import React, { useCallback, useMemo } from 'react'
+
+import swprLogo from '../../assets/images/swpr-logo.png'
 import { useActiveWeb3React } from '../../hooks'
 import { AddSWPRToMetamaskButton } from '../Button'
-import swprLogo from '../../assets/images/swpr-logo.png'
 
 export const AddTokenButton = ({ active }: { active?: boolean }) => {
   const { chainId } = useActiveWeb3React()
@@ -20,9 +22,9 @@ export const AddTokenButton = ({ active }: { active?: boolean }) => {
             address: swpr?.address,
             symbol: swpr?.symbol,
             decimals: swpr?.decimals,
-            image: swprLogo
-          }
-        }
+            image: swprLogo,
+          },
+        },
       })
       .catch(console.error)
   }, [swpr])

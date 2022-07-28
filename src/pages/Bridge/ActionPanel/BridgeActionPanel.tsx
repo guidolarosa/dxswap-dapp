@@ -1,54 +1,46 @@
-import React, { useCallback } from 'react'
 import { ChainId } from '@swapr/sdk'
-import { ButtonPrimary } from '../../../components/Button'
-import { useNetworkSwitch } from '../../../hooks/useNetworkSwitch'
-import { useModalOpen, useWalletSwitcherPopoverToggle } from '../../../state/application/hooks'
-import { BridgeStep } from '../utils'
-import { NetworkSwitcher } from './NetworkSwitcher'
-import { BridgeButton } from './BridgeButton'
-import { networkOptionsPreset } from '../../../components/NetworkSwitcher'
-import { isToken } from '../../../hooks/Tokens'
-import { ButtonConfirmed, ButtonError } from '../../../components/Button'
-import { AutoRow, RowBetween } from '../../../components/Row'
+
+import React, { useCallback } from 'react'
+import { useSelector } from 'react-redux'
+
+import { ButtonConfirmed, ButtonPrimary } from '../../../components/Button'
+import { ButtonConnect } from '../../../components/ButtonConnect'
 import Loader from '../../../components/Loader'
-import ProgressSteps from '../../../components/ProgressSteps'
-import Column from '../../../components/Column'
+import { networkOptionsPreset } from '../../../components/NetworkSwitcher'
+import { RowBetween } from '../../../components/Row'
+import { isToken } from '../../../hooks/Tokens'
+import { useNetworkSwitch } from '../../../hooks/useNetworkSwitch'
+import { AppState } from '../../../state'
+import { BridgeButton } from './BridgeButton'
+import { NetworkSwitcher } from './NetworkSwitcher'
 import { useBridgeActionPanel } from './useBridgeActionPanel'
-import { ApprovalState } from '../../../hooks/useApproveCallback'
-import { ApplicationModal } from '../../../state/application/actions'
 
 export type BridgeActionPanelProps = {
   account: string | null | undefined
   fromNetworkChainId: ChainId
   toNetworkChainId: ChainId
   isNetworkConnected: boolean
-  step: BridgeStep
-  setStep: (step: BridgeStep) => void
+  isCollecting: boolean
+  setIsCollecting: (collecting: boolean) => void
   handleModal: () => void
   handleCollect: () => void
 }
 
 export const BridgeActionPanel = ({
-  step,
+  isCollecting,
   account,
   handleModal,
   handleCollect,
   toNetworkChainId,
   fromNetworkChainId,
-  isNetworkConnected
+  isNetworkConnected,
 }: BridgeActionPanelProps) => {
   const { selectNetwork } = useNetworkSwitch()
-  const toggleWalletSwitcherPopover = useWalletSwitcherPopoverToggle()
-  const {
-    approvalState,
-    handleApprove,
-    isBalanceSufficient,
-    showApprovalFlow,
-    bridgeCurrency,
-    isArbitrum,
-    hasAmount
-  } = useBridgeActionPanel()
-  const networkSwitcherPopoverOpen = useModalOpen(ApplicationModal.NETWORK_SWITCHER)
+  const { bridgeCurrency, handleApprove } = useBridgeActionPanel()
+
+  const { isLoading, isApproved, isBalanceSufficient, label } = useSelector(
+    (state: AppState) => state.ecoBridge.ui.statusButton
+  )
 
   const handleSelectFromNetwork = useCallback(() => {
     selectNetwork(fromNetworkChainId)
@@ -61,24 +53,20 @@ export const BridgeActionPanel = ({
   const selectPanel = () => {
     // No wallet
     if (!account) {
-      return (
-        <ButtonPrimary onClick={toggleWalletSwitcherPopover} disabled={networkSwitcherPopoverOpen}>
-          {networkSwitcherPopoverOpen ? 'Switch network' : 'Connect wallet'}
-        </ButtonPrimary>
-      )
+      return <ButtonConnect />
     }
 
     // Change network
-    if (!isNetworkConnected && step !== BridgeStep.Collect) {
+    if (!isNetworkConnected && !isCollecting) {
       return (
-        <ButtonPrimary onClick={handleSelectFromNetwork}>
+        <ButtonPrimary onClick={handleSelectFromNetwork} data-testid="bridge-button">
           Connect to {networkOptionsPreset.find(network => network.chainId === fromNetworkChainId)?.name}
         </ButtonPrimary>
       )
     }
 
     //Collect
-    if (step === BridgeStep.Collect) {
+    if (isCollecting) {
       return (
         <NetworkSwitcher
           sendToId={toNetworkChainId}
@@ -88,10 +76,10 @@ export const BridgeActionPanel = ({
       )
     }
 
-    if (isBalanceSufficient) {
+    if (!isLoading && isBalanceSufficient) {
       const isNativeCurrency = !isToken(bridgeCurrency)
 
-      if (isArbitrum || isNativeCurrency || (approvalState !== ApprovalState.UNKNOWN && !showApprovalFlow)) {
+      if (isNativeCurrency || isApproved) {
         return (
           <BridgeButton to={toNetworkChainId} from={fromNetworkChainId} onClick={handleModal}>
             {`Bridge to ${networkOptionsPreset.find(network => network.chainId === toNetworkChainId)?.name}`}
@@ -99,52 +87,29 @@ export const BridgeActionPanel = ({
         )
       }
 
-      if (!isNativeCurrency && approvalState !== ApprovalState.UNKNOWN) {
+      if (!isNativeCurrency && !isApproved) {
         return (
           <RowBetween style={{ display: 'flex', flexWrap: 'wrap' }}>
             <ButtonConfirmed
               onClick={handleApprove}
-              disabled={approvalState !== ApprovalState.NOT_APPROVED}
-              width="48%"
-              altDisabledStyle={approvalState === ApprovalState.PENDING}
-              confirmed={approvalState === ApprovalState.APPROVED}
-            >
-              {approvalState === ApprovalState.PENDING ? (
-                <AutoRow gap="6px" justify="center">
-                  Approving <Loader />
-                </AutoRow>
-              ) : approvalState === ApprovalState.APPROVED ? (
-                'Approved'
-              ) : (
-                'Approve ' + bridgeCurrency?.symbol
-              )}
-            </ButtonConfirmed>
-            <ButtonError
-              onClick={handleModal}
-              width="48%"
-              id="swap-button"
-              disabled={approvalState !== ApprovalState.APPROVED}
-              error={false}
-            >
-              Bridge
-            </ButtonError>
-            <Column style={{ marginTop: '1rem', width: '100%' }}>
-              <ProgressSteps steps={[approvalState === ApprovalState.APPROVED]} />
-            </Column>
+              disabled={isApproved}
+              width="100%"
+              altDisabledStyle={false}
+              confirmed={false}
+            >{`Approve ${bridgeCurrency?.symbol}`}</ButtonConfirmed>
           </RowBetween>
         )
       }
     }
-    // No Amount/Token/Balance
+    // No Amount/Token/Balance/Loading
     return (
       <BridgeButton to={toNetworkChainId} from={fromNetworkChainId} disabled onClick={handleModal}>
-        {hasAmount
-          ? bridgeCurrency
-            ? isBalanceSufficient
-              ? `Loading...`
-              : `Insufficient ${bridgeCurrency?.symbol} balance`
-            : 'Select token'
-          : 'Enter amount'}
+        {label}
+        {isLoading && (
+          <div style={{ marginLeft: '5px', color: 'red' }}>
+            <Loader stroke="#C0BAF6" />
+          </div>
+        )}
       </BridgeButton>
     )
   }

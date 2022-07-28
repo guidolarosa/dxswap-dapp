@@ -1,6 +1,7 @@
 import { ChainId } from '@swapr/sdk'
+
 import { NetworkOptions, networkOptionsPreset, NetworkOptionsPreset, NetworksList } from '../components/NetworkSwitcher'
-import { NETWORK_DETAIL, NETWORK_OPTIONAL_DETAIL, SHOW_TESTNETS, TESTNETS } from '../constants'
+import { NETWORK_DETAIL, NETWORK_OPTIONAL_DETAIL, TESTNETS } from '../constants'
 
 export const getNetworkInfo = (chainId: ChainId, customPreset: NetworkOptionsPreset[] = networkOptionsPreset) => {
   const network = customPreset.find(net => {
@@ -10,18 +11,18 @@ export const getNetworkInfo = (chainId: ChainId, customPreset: NetworkOptionsPre
     name: network ? network.name : '', //name displayed in swapr
     logoSrc: network ? network.logoSrc : '',
     color: network ? network.color : '',
-    tag: network ? network.tag : '',
+    tag: network ? network.tag : undefined,
     chainName: NETWORK_DETAIL[chainId].chainName, //name used by metamask
     chainId: NETWORK_DETAIL[chainId].chainId,
     rpcUrl: NETWORK_DETAIL[chainId].rpcUrls,
     nativeCurrency: {
       name: NETWORK_DETAIL[chainId].nativeCurrency.name,
       symbol: NETWORK_DETAIL[chainId].nativeCurrency.symbol,
-      decimals: NETWORK_DETAIL[chainId].nativeCurrency.decimals
+      decimals: NETWORK_DETAIL[chainId].nativeCurrency.decimals,
     },
-    isArbitrum: NETWORK_OPTIONAL_DETAIL[chainId].isArbitrum,
-    partnerChainId: NETWORK_OPTIONAL_DETAIL[chainId].partnerChainId,
-    iconUrls: NETWORK_OPTIONAL_DETAIL[chainId].iconUrls
+    isArbitrum: NETWORK_OPTIONAL_DETAIL[chainId]?.isArbitrum ?? false,
+    partnerChainId: NETWORK_OPTIONAL_DETAIL[chainId]?.partnerChainId,
+    iconUrls: NETWORK_OPTIONAL_DETAIL[chainId]?.iconUrls ?? undefined,
   }
 }
 
@@ -36,7 +37,7 @@ export const getNetworkById = (chainId: ChainId, networkList: NetworksList[]) =>
 
 export const getNetworkOptions = ({
   chainId,
-  networkList
+  networkList,
 }: {
   chainId: ChainId
   networkList: NetworksList[]
@@ -47,7 +48,7 @@ export const getNetworkOptions = ({
   return {
     preset: { chainId, name, logoSrc, color, tag },
     active: selectedNetwork?.active,
-    disabled: selectedNetwork?.disabled
+    disabled: selectedNetwork?.disabled,
   }
 }
 
@@ -56,7 +57,7 @@ const createNetworkOptions = ({
   onNetworkChange,
   isNetworkDisabled,
   selectedNetworkChainId,
-  activeChainId
+  activeChainId,
 }: {
   networkPreset: NetworkOptionsPreset
   selectedNetworkChainId: ChainId
@@ -69,7 +70,7 @@ const createNetworkOptions = ({
     preset: networkPreset,
     active: selectedNetworkChainId === activeChainId,
     disabled: isNetworkDisabled(networkPreset.chainId, selectedNetworkChainId),
-    onClick: () => onNetworkChange(chainId)
+    onClick: () => onNetworkChange(chainId),
   }
 }
 
@@ -79,7 +80,8 @@ export const createNetworksList = ({
   isNetworkDisabled,
   selectedNetworkChainId,
   activeChainId,
-  ignoreTags
+  ignoreTags,
+  showTestnets,
 }: {
   networkOptionsPreset: NetworkOptionsPreset[]
   onNetworkChange: (chainId: ChainId) => void
@@ -87,29 +89,30 @@ export const createNetworksList = ({
   selectedNetworkChainId: ChainId
   activeChainId: ChainId | undefined
   ignoreTags?: string[]
+  showTestnets?: boolean
 }): NetworksList[] => {
   let networks = networkOptionsPreset
 
   if (ignoreTags?.length) {
     networks = networkOptionsPreset.map(item => {
       if (item.tag && ignoreTags?.includes(item.tag)) {
-        return { ...item, tag: '' }
+        return { ...item, tag: undefined }
       }
       return item
     })
   }
 
   return networks
-    .filter(network => SHOW_TESTNETS || !TESTNETS.includes(network.chainId))
+    .filter(network => showTestnets || !TESTNETS.includes(network.chainId) || network.chainId === activeChainId)
     .reduce<NetworksList[]>((taggedList, currentNet) => {
-      const tag = currentNet.tag ? currentNet.tag : ''
+      const tag = currentNet.tag
       const networkPreset = currentNet
       const enhancedNetworkOptions = createNetworkOptions({
         networkPreset,
         selectedNetworkChainId,
         activeChainId,
         onNetworkChange,
-        isNetworkDisabled
+        isNetworkDisabled,
       })
 
       // check if tag exist and if not create array

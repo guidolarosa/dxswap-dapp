@@ -1,10 +1,11 @@
 import { createReducer } from '@reduxjs/toolkit'
+
 import {
   addMulticallListeners,
   errorFetchingMulticallResults,
   fetchingMulticallResults,
   removeMulticallListeners,
-  updateMulticallResults
+  updateMulticallResults,
 } from './actions'
 import { toCallKey } from './utils'
 
@@ -32,7 +33,7 @@ export interface MulticallState {
 }
 
 const initialState: MulticallState = {
-  callResults: {}
+  callResults: {},
 }
 
 export default createReducer(initialState, builder =>
@@ -45,8 +46,8 @@ export default createReducer(initialState, builder =>
           payload: {
             calls,
             chainId,
-            options: { blocksPerFetch }
-          }
+            options: { blocksPerFetch },
+          },
         }
       ) => {
         const listeners: MulticallState['callListeners'] = state.callListeners
@@ -68,8 +69,8 @@ export default createReducer(initialState, builder =>
           payload: {
             chainId,
             calls,
-            options: { blocksPerFetch }
-          }
+            options: { blocksPerFetch },
+          },
         }
       ) => {
         const listeners: MulticallState['callListeners'] = state.callListeners
@@ -97,7 +98,7 @@ export default createReducer(initialState, builder =>
         const current = state.callResults[chainId][callKey]
         if (!current) {
           state.callResults[chainId][callKey] = {
-            fetchingBlockNumber
+            fetchingBlockNumber,
           }
         } else {
           if ((current.fetchingBlockNumber ?? 0) >= fetchingBlockNumber) return
@@ -125,7 +126,7 @@ export default createReducer(initialState, builder =>
         if ((current?.blockNumber ?? 0) > blockNumber) return
         state.callResults[chainId][callKey] = {
           data: results[callKey],
-          blockNumber
+          blockNumber,
         }
       })
     })

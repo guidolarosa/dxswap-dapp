@@ -1,7 +1,9 @@
-import { ChainId } from '@swapr/sdk'
+import { ChainId, RoutablePlatform, UniswapV2RoutablePlatform } from '@swapr/sdk'
+
 import { createStore, Store } from 'redux'
+
 import { addTransaction, checkedTransaction, clearAllTransactions, finalizeTransaction } from './actions'
-import reducer, { initialState, TransactionState } from './reducer'
+import reducer, { createSwapProtocol, getMapOfExchanges, initialState, TransactionState } from './reducer'
 
 describe('transaction reducer', () => {
   let store: Store<TransactionState>
@@ -19,7 +21,7 @@ describe('transaction reducer', () => {
           summary: 'hello world',
           hash: '0x0',
           approval: { tokenAddress: 'abc', spender: 'def' },
-          from: 'abc'
+          from: 'abc',
         })
       )
       const txs = store.getState()
@@ -49,8 +51,8 @@ describe('transaction reducer', () => {
             from: '0x0',
             contractAddress: '0x0',
             blockHash: '0x0',
-            blockNumber: 1
-          }
+            blockNumber: 1,
+          },
         })
       )
       expect(store.getState()).toEqual({})
@@ -62,7 +64,7 @@ describe('transaction reducer', () => {
           chainId: ChainId.RINKEBY,
           approval: { spender: '0x0', tokenAddress: '0x0' },
           summary: 'hello world',
-          from: '0x0'
+          from: '0x0',
         })
       )
       const beforeTime = new Date().getTime()
@@ -78,8 +80,8 @@ describe('transaction reducer', () => {
             from: '0x0',
             contractAddress: '0x0',
             blockHash: '0x0',
-            blockNumber: 1
-          }
+            blockNumber: 1,
+          },
         })
       )
       const tx = store.getState()[ChainId.RINKEBY]?.['0x0']
@@ -93,7 +95,7 @@ describe('transaction reducer', () => {
         from: '0x0',
         contractAddress: '0x0',
         blockHash: '0x0',
-        blockNumber: 1
+        blockNumber: 1,
       })
     })
   })
@@ -104,7 +106,7 @@ describe('transaction reducer', () => {
         checkedTransaction({
           chainId: ChainId.RINKEBY,
           hash: '0x0',
-          blockNumber: 1
+          blockNumber: 1,
         })
       )
       expect(store.getState()).toEqual({})
@@ -116,14 +118,14 @@ describe('transaction reducer', () => {
           chainId: ChainId.RINKEBY,
           approval: { spender: '0x0', tokenAddress: '0x0' },
           summary: 'hello world',
-          from: '0x0'
+          from: '0x0',
         })
       )
       store.dispatch(
         checkedTransaction({
           chainId: ChainId.RINKEBY,
           hash: '0x0',
-          blockNumber: 1
+          blockNumber: 1,
         })
       )
       const tx = store.getState()[ChainId.RINKEBY]?.['0x0']
@@ -136,21 +138,21 @@ describe('transaction reducer', () => {
           chainId: ChainId.RINKEBY,
           approval: { spender: '0x0', tokenAddress: '0x0' },
           summary: 'hello world',
-          from: '0x0'
+          from: '0x0',
         })
       )
       store.dispatch(
         checkedTransaction({
           chainId: ChainId.RINKEBY,
           hash: '0x0',
-          blockNumber: 3
+          blockNumber: 3,
         })
       )
       store.dispatch(
         checkedTransaction({
           chainId: ChainId.RINKEBY,
           hash: '0x0',
-          blockNumber: 1
+          blockNumber: 1,
         })
       )
       const tx = store.getState()[ChainId.RINKEBY]?.['0x0']
@@ -166,7 +168,7 @@ describe('transaction reducer', () => {
           summary: 'hello world',
           hash: '0x0',
           approval: { tokenAddress: 'abc', spender: 'def' },
-          from: 'abc'
+          from: 'abc',
         })
       )
       store.dispatch(
@@ -175,7 +177,7 @@ describe('transaction reducer', () => {
           summary: 'hello world',
           hash: '0x1',
           approval: { tokenAddress: 'abc', spender: 'def' },
-          from: 'abc'
+          from: 'abc',
         })
       )
       expect(Object.keys(store.getState())).toHaveLength(2)
@@ -188,5 +190,35 @@ describe('transaction reducer', () => {
       expect(Object.keys(store.getState()[ChainId.MAINNET] ?? {})).toEqual([])
       expect(Object.keys(store.getState()[ChainId.RINKEBY] ?? {})).toEqual(['0x1'])
     })
+  })
+})
+
+describe('createSwapProtocol', () => {
+  it('matches the actual list of protocols from an platform to their expected values', () => {
+    const expectedUniswapNames = [
+      'SWAPR',
+      'UNISWAP',
+      'SUSHISWAP',
+      'HONEYSWAP',
+      'BAOSWAP',
+      'LEVINSWAP',
+      'QUICKSWAP',
+      'DFYN',
+    ]
+
+    const expectedRoutableNames = ['0X', 'CURVE', 'COW']
+
+    // the filtered entries can grow, if that happens we don't want the tests to break
+    // we are checking if the expected list is a subset of the actual list
+    const uniswapFilteredEntries = getMapOfExchanges(UniswapV2RoutablePlatform)
+    expect(expectedUniswapNames.every(el => Array.from(Object.keys(uniswapFilteredEntries)).includes(el))).toBeTruthy()
+
+    const genericFilteredEntries = getMapOfExchanges(RoutablePlatform)
+    expect(expectedRoutableNames.every(el => Array.from(Object.keys(genericFilteredEntries)).includes(el))).toBeTruthy()
+  })
+  it('create SwapProtocol', () => {
+    const actualProtocol = createSwapProtocol()
+    expect(actualProtocol.SWAPR).toBeDefined()
+    expect(actualProtocol.notDefined).toBeUndefined()
   })
 })

@@ -1,7 +1,9 @@
-import { Trade } from '@swapr/sdk'
+import { Trade, UniswapV2Trade } from '@swapr/sdk'
+
 import React from 'react'
 import { Settings } from 'react-feather'
 import styled from 'styled-components'
+
 import { useToggleSettingsMenu } from '../../state/application/hooks'
 import { useUserSlippageTolerance } from '../../state/user/hooks'
 import { TYPE } from '../../theme'
@@ -23,7 +25,7 @@ const Spacer = styled.div`
 `
 
 function TradeSummary({ trade, allowedSlippage }: { trade: Trade; allowedSlippage: number }) {
-  const { priceImpactWithoutFee } = computeTradePriceBreakdown(trade)
+  const { priceImpactWithoutFee } = computeTradePriceBreakdown(trade as UniswapV2Trade)
   const toggleSettings = useToggleSettingsMenu()
   // Formatting logic: allowedSlippage = 900 shows as 9%, 950 shows as 9.50%
   const formattedSlippage =
@@ -67,7 +69,7 @@ export interface AdvancedSwapDetailsProps {
 }
 
 export function AdvancedSwapDetails({ trade }: AdvancedSwapDetailsProps) {
-  const [allowedSlippage] = useUserSlippageTolerance()
+  const allowedSlippage = useUserSlippageTolerance()
 
   return trade ? <TradeSummary trade={trade} allowedSlippage={allowedSlippage} /> : null
 }

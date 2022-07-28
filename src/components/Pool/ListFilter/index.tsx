@@ -1,14 +1,15 @@
 import { useWeb3React } from '@web3-react/core'
-import React, { useCallback } from 'react'
+import React, { ChangeEvent, useCallback } from 'react'
 import { Box, Flex } from 'rebass'
 import styled from 'styled-components'
+
 import Radio from '../../Radio'
 
 export enum PairsFilterType {
   ALL = 'ALL',
   REWARDS = 'REWARDS',
   MY = 'MY',
-  SWPR = 'SWPR'
+  SWPR = 'SWPR',
 }
 
 const StyledRoot = styled(Flex)<{ disabled?: boolean }>`
@@ -26,7 +27,7 @@ export default function ListFilter({ disabled, filter, onFilterChange }: ListFil
   const { account } = useWeb3React()
 
   const handleFilterRadioChange = useCallback(
-    event => {
+    (event: ChangeEvent<HTMLInputElement>) => {
       onFilterChange(PairsFilterType[event.target.value as keyof typeof PairsFilterType])
     },
     [onFilterChange]

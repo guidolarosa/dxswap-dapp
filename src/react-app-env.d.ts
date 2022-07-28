@@ -1,7 +1,7 @@
 /// <reference types="react-scripts" />
 
 declare module 'jazzicon' {
-  export default function(diameter: number, seed: number): HTMLElement
+  export default function (diameter: number, seed: number): HTMLElement
 }
 
 declare module 'fortmatic'
@@ -19,15 +19,17 @@ interface Window {
     request?: (args: EthereumProviderRequestArguments) => Promise<unknown>
     isCoinbaseWallet?: boolean
   }
-  web3?: {}
+  web3?: Record<string, unknown>
 }
 
 declare module 'content-hash' {
-  declare function decode(x: string): string
-  declare function getCodec(x: string): string
+  export function decode(x: string): string
+  export function getCodec(x: string): string
 }
 
 declare module 'multihashes' {
-  declare function decode(buff: Uint8Array): { code: number; name: string; length: number; digest: Uint8Array }
-  declare function toB58String(hash: Uint8Array): string
+  export function decode(buff: Uint8Array): { code: number; name: string; length: number; digest: Uint8Array }
+  export function toB58String(hash: Uint8Array): string
 }
+
+declare module 'toformat'

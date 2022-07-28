@@ -1,5 +1,6 @@
 import React from 'react'
 import styled from 'styled-components'
+
 import { ExternalLink } from '../../theme'
 
 const InfoCard = styled.button<{ active?: boolean }>`
@@ -92,7 +93,7 @@ export default function Option({
   subheader = null,
   icon,
   active = false,
-  id
+  id,
 }: {
   link?: string | null
   clickable?: boolean

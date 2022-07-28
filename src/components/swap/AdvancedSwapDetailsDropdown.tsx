@@ -1,27 +1,28 @@
-import React from 'react'
-import styled from 'styled-components'
 import { ChainId, RoutablePlatform, Trade } from '@swapr/sdk'
-import { useLastTruthy } from '../../hooks/useLast'
-import { AdvancedSwapDetails } from './AdvancedSwapDetails'
-import { SwapPlatformSelector } from './SwapPlatformSelector'
-import { AutoColumn } from '../Column'
+
+import { formatUnits } from 'ethers/lib/utils'
+import { transparentize } from 'polished'
+import React from 'react'
 import { Settings } from 'react-feather'
 import { Box, Flex } from 'rebass'
-import { useMainnetGasPrices, useToggleSettingsMenu } from '../../state/application/hooks'
-import { GreenGasPriceOption, OrangeGasPriceOption, PurpleGasPriceOption } from '../GasBadges'
-import { formatUnits } from 'ethers/lib/utils'
-import { MainnetGasPrice } from '../../state/application/actions'
-import { RowFixed } from '../Row'
-import { useMultihopManager, useUserPreferredGasPrice } from '../../state/user/hooks'
-import { transparentize } from 'polished'
+import styled from 'styled-components'
+
 import { useActiveWeb3React } from '../../hooks'
+import { MainnetGasPrice } from '../../state/application/actions'
+import { useMainnetGasPrices, useToggleSettingsMenu } from '../../state/application/hooks'
+import { useMultihopManager, useUserPreferredGasPrice } from '../../state/user/hooks'
+import { AutoColumn } from '../Column'
+import { GreenGasPriceOption, OrangeGasPriceOption, PurpleGasPriceOption } from '../GasBadges'
+import { RowFixed } from '../Row'
+import { SwapPlatformSelector } from './SwapPlatformSelector'
 
 const HideableAutoColumn = styled(AutoColumn)<{ show: boolean }>`
-  transform: ${({ show }) => (show ? 'translateY(8px)' : 'translateY(-100%)')};
+  transform: ${({ show }) => (show ? 'translateY(16px)' : 'translateY(-100%)')};
   transition: transform 300ms ease;
   z-index: -1;
-  max-width: 420px;
+  max-width: 457px;
   width: 100%;
+  margin-bottom: 30px;
 `
 
 const AdvancedDetailsFooter = styled.div<{
@@ -34,7 +35,7 @@ const AdvancedDetailsFooter = styled.div<{
   padding: ${props => props.padding};
   color: ${({ theme }) => theme.purple3};
   background-color: ${props => transparentize(0.45, props.theme.bg1)};
-  border: solid 1px #292643;
+  border: solid 1px ${({ theme }) => theme.purple6};
   border-radius: 12px;
   backdrop-filter: blur(16px);
   cursor: ${props => (props.clickable ? 'pointer' : 'auto')};
@@ -75,20 +76,20 @@ interface AdvancedSwapDetailsDropdownProps {
   trade?: Trade
   allPlatformTrades?: (Trade | undefined)[] | undefined
   onSelectedPlatformChange: (newPlatform: RoutablePlatform) => void
+  isLoading: boolean
 }
 
 export default function AdvancedSwapDetailsDropdown({
+  isLoading,
   trade,
   allPlatformTrades,
   onSelectedPlatformChange,
-  ...rest
 }: AdvancedSwapDetailsDropdownProps) {
   const { chainId } = useActiveWeb3React()
   const [userPreferredMainnetGasPrice, setUserPreferredMainnetGasPrice] = useUserPreferredGasPrice()
   const [multihopEnabled, toggleMultihop] = useMultihopManager()
   const toggleSettingsMenu = useToggleSettingsMenu()
   const mainnetGasPrices = useMainnetGasPrices()
-  const lastTrade = useLastTruthy(trade)
 
   const getGasPriceClickHandler = (priceVariant: MainnetGasPrice) => () => {
     setUserPreferredMainnetGasPrice(priceVariant)
@@ -100,16 +101,16 @@ export default function AdvancedSwapDetailsDropdown({
     }
   }
 
+  const showTradeListWrapper = isLoading || allPlatformTrades?.length !== 0
+
   return (
-    <HideableAutoColumn gap="8px" show={!!trade}>
-      <AdvancedDetailsFooter fullWidth padding="12px">
-        <SwapPlatformSelector
-          selectedTrade={trade}
-          allPlatformTrades={allPlatformTrades}
-          onSelectedPlatformChange={onSelectedPlatformChange}
-        />
-        <AdvancedSwapDetails {...rest} trade={trade ?? lastTrade ?? undefined} />
-      </AdvancedDetailsFooter>
+    <HideableAutoColumn gap="8px" show={showTradeListWrapper}>
+      <SwapPlatformSelector
+        isLoading={isLoading}
+        selectedTrade={trade}
+        allPlatformTrades={allPlatformTrades}
+        onSelectedPlatformChange={onSelectedPlatformChange}
+      />
       {chainId === ChainId.MAINNET && !!mainnetGasPrices && (
         <SettingsFlex width="100%">
           <Box flex="1">

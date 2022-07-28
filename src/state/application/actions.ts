@@ -1,26 +1,15 @@
 import { createAction } from '@reduxjs/toolkit'
-import { TokenList } from '@uniswap/token-lists'
+
 import { ApplicationState } from './reducer'
 
-export type PopupContent =
-  | {
-      txn: {
-        hash: string
-        success: boolean
-        summary?: string
-      }
-    }
-  | {
-      listUpdate: {
-        listUrl: string
-        oldList: TokenList
-        newList: TokenList
-        auto: boolean
-      }
-    }
+export type PopupContent = {
+  hash: string
+  success: boolean
+  summary?: string
+  swapProtocol?: string
+}
 
 export enum ApplicationModal {
-  WALLET,
   SETTINGS,
   SELF_CLAIM,
   ADDRESS_CLAIM,
@@ -31,13 +20,16 @@ export enum ApplicationModal {
   NETWORK_SWITCHER,
   ETHEREUM_OPTION,
   NETWORK_SWITCHER_FROM,
-  NETWORK_SWITCHER_TO
+  NETWORK_SWITCHER_TO,
+  UNSUPPORTED_NETWORK,
+  SIMPLE_SETTINGS,
+  EXPEDITIONS,
 }
 
 export enum MainnetGasPrice {
   INSTANT = 'INSTANT',
   FAST = 'FAST',
-  NORMAL = 'NORMAL'
+  NORMAL = 'NORMAL',
 }
 
 export const updateBlockNumber = createAction<{ chainId: number; blockNumber: number }>('application/updateBlockNumber')
@@ -45,6 +37,5 @@ export const updateMainnetGasPrices = createAction<{ [variant in MainnetGasPrice
   'application/updateMainnetGasPrices'
 )
 export const setOpenModal = createAction<ApplicationModal | null>('application/setOpenModal')
-export const setConnectorInfo = createAction<Pick<ApplicationState, 'account' | 'chainId'>>(
-  'application/setConnectorInfo'
-)
+export const setConnectorInfo =
+  createAction<Pick<ApplicationState, 'account' | 'chainId'>>('application/setConnectorInfo')

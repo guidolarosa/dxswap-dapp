@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Flex, Text } from 'rebass'
+
 import { ApprovalState } from '../../../../../../hooks/useApproveCallback'
 import { Dots } from '../../../../../../pages/Pools/styleds'
 import { ButtonError, ButtonPrimary } from '../../../../../Button'
@@ -19,7 +20,7 @@ export default function ConfirmStakingModalFooter({
   text,
   disabledConfirm,
   approvalState,
-  showApprove
+  showApprove,
 }: ConfirmStakingModalFooterProps) {
   return (
     <Flex justifyContent="stretch">

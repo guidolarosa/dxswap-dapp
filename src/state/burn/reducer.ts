@@ -1,4 +1,5 @@
 import { createReducer } from '@reduxjs/toolkit'
+
 import { Field, typeInput } from './actions'
 
 export interface BurnState {
@@ -8,7 +9,7 @@ export interface BurnState {
 
 const initialState: BurnState = {
   independentField: Field.LIQUIDITY_PERCENT,
-  typedValue: '0'
+  typedValue: '0',
 }
 
 export default createReducer<BurnState>(initialState, builder =>
@@ -16,7 +17,7 @@ export default createReducer<BurnState>(initialState, builder =>
     return {
       ...state,
       independentField: field,
-      typedValue
+      typedValue,
     }
   })
 )

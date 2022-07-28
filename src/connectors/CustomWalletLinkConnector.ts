@@ -1,8 +1,9 @@
 // largely taken from https://github.com/NoahZinsmeister/web3-react/blob/v6/packages/walletlink-connector/src/index.ts
 // Updated to always be in sync with network connector's chain id
 
-import { ConnectorUpdate } from '@web3-react/types'
 import { AbstractConnector } from '@web3-react/abstract-connector'
+import { ConnectorUpdate } from '@web3-react/types'
+
 import { NetworkDetails } from '../constants'
 
 const CHAIN_ID = 1
@@ -45,13 +46,13 @@ export class CustomWalletLinkConnector extends AbstractConnector {
       this.walletLink = new WalletLink({
         appName: this.appName,
         darkMode: this.darkMode,
-        ...(this.appLogoUrl ? { appLogoUrl: this.appLogoUrl } : {})
+        ...(this.appLogoUrl ? { appLogoUrl: this.appLogoUrl } : {}),
       })
       this.provider = this.walletLink.makeWeb3Provider(this.url, CHAIN_ID)
     }
 
     const accounts = await this.provider.request({
-      method: 'eth_requestAccounts'
+      method: 'eth_requestAccounts',
     })
     const account = accounts[0]
 
@@ -71,7 +72,7 @@ export class CustomWalletLinkConnector extends AbstractConnector {
 
   public async getAccount(): Promise<null | string> {
     const accounts = await this.provider.request({
-      method: 'eth_requestAccounts'
+      method: 'eth_requestAccounts',
     })
     return accounts[0]
   }
@@ -90,7 +91,7 @@ export class CustomWalletLinkConnector extends AbstractConnector {
     this.provider
       .request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: networkDetails.chainId }]
+        params: [{ chainId: networkDetails.chainId }],
       })
       .catch((error: any) => {
         if (error.code !== 4902) {
@@ -99,7 +100,7 @@ export class CustomWalletLinkConnector extends AbstractConnector {
         this.provider
           .request({
             method: 'wallet_addEthereumChain',
-            params: [{ ...networkDetails }, account]
+            params: [{ ...networkDetails }, account],
           })
           .catch((error: any) => {
             console.error('error adding chain with id', networkDetails.chainId, error)

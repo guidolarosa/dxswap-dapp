@@ -1,12 +1,13 @@
 import { AbstractConnector } from '@web3-react/abstract-connector'
 import React from 'react'
+import { Box, Flex } from 'rebass'
 import styled from 'styled-components'
-import { SUPPORTED_WALLETS } from '../../constants'
+
 import { injected } from '../../connectors'
-import Loader from '../Loader'
+import { SUPPORTED_WALLETS } from '../../constants'
 import { TYPE } from '../../theme'
 import { ButtonPrimary } from '../Button'
-import { Box, Flex } from 'rebass'
+import Loader from '../Loader'
 
 const PendingSection = styled.div`
   ${({ theme }) => theme.flexColumnNoWrap};
@@ -53,7 +54,7 @@ export default function PendingView({
   connector,
   error = false,
   setPendingError,
-  tryActivation
+  tryActivation,
 }: {
   connector?: AbstractConnector
   error?: boolean
@@ -78,7 +79,13 @@ export default function PendingView({
           return (
             <Flex key={key} mb="28px" justifyContent="center">
               <Box mr="10px">
-                <img src={require('../../assets/images/' + option.iconName)} alt="logo" width="24px" height="24px" />
+                <img
+                  // eslint-disable-next-line
+                  src={require('../../assets/images/' + option.iconName).default}
+                  alt="logo"
+                  width="24px"
+                  height="24px"
+                />
               </Box>
               <Box>
                 <TYPE.body color="white" fontWeight="500" fontSize="22px" lineHeight="27px">

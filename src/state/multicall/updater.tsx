@@ -1,6 +1,7 @@
 import { Contract } from 'ethers'
 import { useEffect, useMemo, useRef } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+
 import { useActiveWeb3React } from '../../hooks'
 import { useMulticallContract } from '../../hooks/useContract'
 import useDebounce from '../../hooks/useDebounce'
@@ -18,20 +19,30 @@ import { Call, parseCallKey } from './utils'
  * @param chunk chunk of calls to make
  * @param blockNumber block number passed as the block tag in the eth_call
  */
+type ErrorWithMessageAndCode = {
+  code: number
+  message: string
+}
+
+function isErrorWithMessageAndCode(error: unknown): error is ErrorWithMessageAndCode {
+  return (typeof error === 'object' && error && ('message' in error || 'code' in error)) ?? false
+}
+
 async function fetchChunk(multicall: Contract, chunk: Call[], blockNumber: number): Promise<string[]> {
-  console.debug('Fetching chunk', chunk, blockNumber)
   try {
     const { returnData } = await multicall.callStatic.aggregate(
       chunk.map(obj => ({
         target: obj.address,
-        callData: obj.callData
+        callData: obj.callData,
       })),
       { blockTag: blockNumber }
     )
     return returnData
   } catch (error) {
-    if (error.code === -32000 || error.message?.indexOf('header not found') !== -1) {
-      throw new RetryableError(`header not found for block number ${blockNumber}`)
+    if (isErrorWithMessageAndCode(error)) {
+      if (error.code === -32000 || error.message?.indexOf('header not found') !== -1) {
+        throw new RetryableError(`header not found for block number ${blockNumber}`)
+      }
     }
     console.error('Failed to fetch chunk', error)
     throw error
@@ -111,7 +122,10 @@ export default function Updater(): null {
   const latestBlockNumber = useBlockNumber()
   const { chainId } = useActiveWeb3React()
   const multicallContract = useMulticallContract()
-  const cancellations = useRef<{ blockNumber: number; cancellations: (() => void)[] }>()
+  const cancellations = useRef<{
+    blockNumber: number
+    cancellations: (() => void)[]
+  }>()
 
   const listeningKeys: { [callKey: string]: number } = useMemo(() => {
     return activeListeningKeys(debouncedListeners, chainId)
@@ -121,9 +135,10 @@ export default function Updater(): null {
     return outdatedListeningKeys(state.callResults, listeningKeys, chainId, latestBlockNumber)
   }, [chainId, state.callResults, listeningKeys, latestBlockNumber])
 
-  const serializedOutdatedCallKeys = useMemo(() => JSON.stringify(unserializedOutdatedCallKeys.sort()), [
-    unserializedOutdatedCallKeys
-  ])
+  const serializedOutdatedCallKeys = useMemo(
+    () => JSON.stringify(unserializedOutdatedCallKeys.sort()),
+    [unserializedOutdatedCallKeys]
+  )
 
   useEffect(() => {
     if (!latestBlockNumber || !chainId || !multicallContract) return
@@ -142,7 +157,7 @@ export default function Updater(): null {
       fetchingMulticallResults({
         calls,
         chainId,
-        fetchingBlockNumber: latestBlockNumber
+        fetchingBlockNumber: latestBlockNumber,
       })
     )
 
@@ -152,7 +167,7 @@ export default function Updater(): null {
         const { cancel, promise } = retry(() => fetchChunk(multicallContract, chunk, latestBlockNumber), {
           n: Infinity,
           minWait: 1000,
-          maxWait: 2500
+          maxWait: 2500,
         })
         promise
           .then(returnData => {
@@ -175,14 +190,15 @@ export default function Updater(): null {
             )
 
             // dispatch any new results
-            if (Object.keys(results).length > 0)
+            if (Object.keys(results).length > 0) {
               dispatch(
                 updateMulticallResults({
                   chainId,
                   results,
-                  blockNumber: latestBlockNumber
+                  blockNumber: latestBlockNumber,
                 })
               )
+            }
 
             // dispatch any errored calls
             if (erroredCalls.length > 0) {
@@ -191,7 +207,7 @@ export default function Updater(): null {
                 errorFetchingMulticallResults({
                   calls: erroredCalls,
                   chainId,
-                  fetchingBlockNumber: latestBlockNumber
+                  fetchingBlockNumber: latestBlockNumber,
                 })
               )
             }
@@ -206,12 +222,12 @@ export default function Updater(): null {
               errorFetchingMulticallResults({
                 calls: chunk,
                 chainId,
-                fetchingBlockNumber: latestBlockNumber
+                fetchingBlockNumber: latestBlockNumber,
               })
             )
           })
         return cancel
-      })
+      }),
     }
   }, [chainId, multicallContract, dispatch, serializedOutdatedCallKeys, latestBlockNumber])
 

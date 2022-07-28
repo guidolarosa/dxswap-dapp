@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react'
 import { HelpCircle as Question } from 'react-feather'
 import styled from 'styled-components'
+
 import Tooltip from '../Tooltip'
 
 const QuestionWrapper = styled.div`
@@ -35,7 +36,7 @@ const QuestionMark = styled.span`
   font-size: 1rem;
 `
 
-export default function QuestionHelper({ text, className }: { text: string, className?: string }) {
+export default function QuestionHelper({ text, className }: { text: string; className?: string }) {
   const [show, setShow] = useState<boolean>(false)
 
   const open = useCallback(() => setShow(true), [setShow])

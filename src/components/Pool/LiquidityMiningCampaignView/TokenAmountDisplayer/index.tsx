@@ -1,13 +1,15 @@
-import { PricedTokenAmount } from '@swapr/sdk'
-import React, { useContext } from 'react'
+import { PricedToken, PricedTokenAmount } from '@swapr/sdk'
+
+import React from 'react'
 import { Box, Flex } from 'rebass'
+import { useTheme } from 'styled-components'
+
 import { useNativeCurrencyUSDPrice } from '../../../../hooks/useNativeCurrencyUSDPrice'
 import { TYPE } from '../../../../theme'
-import CurrencyLogo from '../../../CurrencyLogo'
-import { MouseoverTooltip } from '../../../Tooltip'
 import { AutoColumn } from '../../../Column'
+import { CurrencyLogo } from '../../../CurrencyLogo'
 import { AutoRow } from '../../../Row'
-import { ThemeContext } from 'styled-components'
+import { MouseoverTooltip } from '../../../Tooltip'
 
 interface TokenAmountDisplayerProps {
   amount: PricedTokenAmount
@@ -22,12 +24,12 @@ function TokenAmountDisplayer({
   fontSize = '14px',
   alignRight,
   showUSDValue,
-  className
+  className,
 }: TokenAmountDisplayerProps) {
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
   const { nativeCurrencyUSDPrice } = useNativeCurrencyUSDPrice()
 
-  const tooltipIcons = (token: any) => {
+  const tooltipIcons = (token: PricedToken) => {
     return (
       <AutoRow>
         <CurrencyLogo currency={token} size={'22px'} />
@@ -44,7 +46,11 @@ function TokenAmountDisplayer({
   return (
     <Flex justifyContent={alignRight ? 'flex-end' : 'flex-start'} alignItems="center" className={className} mb="2px">
       <MouseoverTooltip
-        styled={{ border: 'none', borderRadius: '4px', backgroundColor: theme.bg3 }}
+        styled={{
+          border: 'none',
+          borderRadius: '4px',
+          backgroundColor: theme.bg3,
+        }}
         content={tooltipIcons(amount.token)}
       >
         <Flex alignItems="center">

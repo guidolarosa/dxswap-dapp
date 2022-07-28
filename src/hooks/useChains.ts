@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
-import { useActiveWeb3React } from '.'
+
 import { getChainPair } from '../utils/arbitrum'
+
+import { useActiveWeb3React } from './index'
 
 export const useChains = () => {
   const { chainId } = useActiveWeb3React()

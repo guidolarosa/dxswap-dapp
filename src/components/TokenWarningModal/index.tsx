@@ -1,18 +1,21 @@
 import { Token } from '@swapr/sdk'
-import React, { useCallback, useContext } from 'react'
-import styled, { ThemeContext } from 'styled-components'
+
+import { TokenList } from '@uniswap/token-lists'
+import { transparentize } from 'polished'
+import React, { useCallback } from 'react'
+import { AlertCircle, AlertTriangle } from 'react-feather'
+import { useTranslation } from 'react-i18next'
+import styled, { useTheme } from 'styled-components'
+
 import { useActiveWeb3React } from '../../hooks'
 import { ExternalLink, TYPE } from '../../theme'
 import { getExplorerLink, shortenAddress } from '../../utils'
-import CurrencyLogo from '../CurrencyLogo'
+import { ButtonError } from '../Button'
+import { AutoColumn } from '../Column'
+import { CurrencyLogo } from '../CurrencyLogo'
+import ListLogo from '../ListLogo'
 import Modal from '../Modal'
 import { AutoRow, RowFixed } from '../Row'
-import { AutoColumn } from '../Column'
-import { AlertCircle, AlertTriangle } from 'react-feather'
-import { ButtonError } from '../Button'
-import { TokenList } from '@uniswap/token-lists'
-import ListLogo from '../ListLogo'
-import { transparentize } from 'polished'
 
 const WarningContainer = styled.div`
   width: 100%;
@@ -52,7 +55,8 @@ interface TokenWarningCardProps {
 }
 
 export function TokenWarningCard({ token, list }: TokenWarningCardProps) {
-  const theme = useContext(ThemeContext)
+  const theme = useTheme()
+  const { t } = useTranslation('common')
   const { chainId } = useActiveWeb3React()
 
   if (!token) return null
@@ -76,7 +80,7 @@ export function TokenWarningCard({ token, list }: TokenWarningCardProps) {
             href={getExplorerLink(chainId, token.address, 'token')}
           >
             <TYPE.main color="purple4" fontSize="14px" lineHeight="17px" title={token.address}>
-              {shortenAddress(token.address)} (View on block explorer)
+              {shortenAddress(token.address)} ({t('viewOnBlockExplorer')})
             </TYPE.main>
           </ExternalLink>
         )}
@@ -105,7 +109,7 @@ export function TokenWarningCard({ token, list }: TokenWarningCardProps) {
 export default function TokenWarningModal({
   isOpen,
   tokens,
-  onConfirm
+  onConfirm,
 }: {
   isOpen: boolean
   tokens: Token[]

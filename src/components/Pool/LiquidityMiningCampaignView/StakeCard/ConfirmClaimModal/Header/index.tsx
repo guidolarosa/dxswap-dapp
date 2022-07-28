@@ -1,9 +1,11 @@
 import { PricedTokenAmount, TokenAmount } from '@swapr/sdk'
+
 import React, { useState } from 'react'
 import styled from 'styled-components'
+
 import { tryParseAmount } from '../../../../../../state/swap/hooks'
 import { AutoColumn } from '../../../../../Column'
-import CurrencyInputPanel from '../../../../../CurrencyInputPanel'
+import { CurrencyInputPanel } from '../../../../../CurrencyInputPanel'
 
 const Root = styled.div`
   margin-top: 20px;
@@ -15,7 +17,9 @@ interface ConfirmStakeModalHeaderProps {
 }
 
 export default function ConfirmClaimModalHeader({ claimableRewards, onAmountChange }: ConfirmStakeModalHeaderProps) {
-  const [typedAmount, setTypedAmount] = useState<{ [rewardTokenAddress: string]: string }>({})
+  const [typedAmount, setTypedAmount] = useState<{
+    [rewardTokenAddress: string]: string
+  }>({})
 
   return (
     <Root>
@@ -35,10 +39,12 @@ export default function ConfirmClaimModalHeader({ claimableRewards, onAmountChan
                 }
               }}
               onMax={() => {
-                setTypedAmount({ ...typedAmount, [rewardTokenAddress]: claimableReward.toExact() })
+                setTypedAmount({
+                  ...typedAmount,
+                  [rewardTokenAddress]: claimableReward.toExact(),
+                })
                 onAmountChange(new TokenAmount(rewardToken, claimableReward.raw.toString()))
               }}
-              showMaxButton
               currency={rewardToken}
               id={rewardTokenAddress}
               disableCurrencySelect
