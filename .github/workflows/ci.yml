@@ -365,7 +365,7 @@ jobs:
           retention-days: 3
 
       - name: Delete merged artifacts
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: |
             LiquidityTests
@@ -384,6 +384,6 @@ jobs:
     if: ${{ success() }}
     steps:
       - name: Delete workspace artifact
-        uses: geekyeggo/delete-artifact@v1
+        uses: geekyeggo/delete-artifact@v5
         with:
           name: workspace
